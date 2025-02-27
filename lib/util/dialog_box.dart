@@ -10,6 +10,9 @@ class DialogBox extends StatefulWidget {
   final VoidCallback onCancel;
   final GlobalKey<SliderElementState> sliderKey;
   final Function(IconData) onIconSelected;
+  final bool isEditing; // Add flag for editing mode
+  final IconData? initialIcon; // Add initial icon for editing
+  final double? initialPriority; // Add initial priority parameter
 
   const DialogBox({
     super.key,
@@ -18,6 +21,9 @@ class DialogBox extends StatefulWidget {
     required this.onCancel,
     required this.sliderKey,
     required this.onIconSelected,
+    this.isEditing = false, // Default is not editing
+    this.initialIcon,
+    this.initialPriority, // Add parameter
   });
 
   @override
@@ -26,6 +32,24 @@ class DialogBox extends StatefulWidget {
 
 class _DialogBoxState extends State<DialogBox> {
   IconData? _selectedIcon;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with initial icon if provided, but don't call the callback yet
+    _selectedIcon = widget.initialIcon;
+    
+    // Use post-frame callback to set up initial values safely
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Set priority if provided
+      if (widget.initialPriority != null) {
+        widget.sliderKey.currentState?.setSliderValue(widget.initialPriority!);
+      }
+      
+      // No need to call onIconSelected here - we've already set _selectedIcon
+      // and the parent component already knows about the initial icon
+    });
+  }
 
   void _handleIconTap(IconData icon) {
     setState(() {
@@ -60,6 +84,11 @@ class _DialogBoxState extends State<DialogBox> {
 
     return AlertDialog(
       backgroundColor: Colors.brown[200],
+      title: Text(
+        widget.isEditing ? "Edit Task" : "Add Task",
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
       content: SizedBox(
         width: 300,
         height: 350, // Increased height to fix overflow

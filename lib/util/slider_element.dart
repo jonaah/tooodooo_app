@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 
@@ -14,6 +13,12 @@ class SliderElementState extends State<SliderElement> {
 
   double getSliderValue() {
     return _sliderValue;
+  }
+
+  void setSliderValue(double value) {
+    setState(() {
+      _sliderValue = value;
+    });
   }
 
   Color? taskPriorityColor(double sliderValue) {

@@ -42,6 +42,7 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey<SliderElementState> _sliderKey = GlobalKey<SliderElementState>();
   List<Task> toDoList = [];
   IconData? selectedIcon;
+  int? _editingIndex; // Track which task is being edited
 
   @override
   void initState() {
@@ -111,23 +112,91 @@ class _HomePageState extends State<HomePage> {
     _saveToDoList();
   }
 
-  // Öffnet den Dialog zur Erstellung einer neuen Aufgabe
-  void createNewTask() {
+  // Edit an existing task
+  void editTask(int index) {
+    _editingIndex = index;
+    _controller.text = toDoList[index].name;
+    selectedIcon = toDoList[index].iconCodePoint != null ? 
+                  IconData(toDoList[index].iconCodePoint!, fontFamily: 'MaterialIcons') : null;
+    
+    final initialPriority = toDoList[index].priority;
+    final initialIcon = selectedIcon;
+    
     showDialog(
-        context: context,
-        builder: (context) {
-          return DialogBox(
-            controller: _controller,
-            onSave: saveNewTask,
-            onCancel: () => Navigator.pop(context),
-            sliderKey: _sliderKey,
-            onIconSelected: (icon) {
+      context: context,
+      builder: (context) {
+        return DialogBox(
+          controller: _controller,
+          onSave: saveEditedTask,
+          onCancel: () {
+            _editingIndex = null;
+            _controller.clear();
+            selectedIcon = null;
+            Navigator.pop(context);
+          },
+          sliderKey: _sliderKey,
+          onIconSelected: (icon) {
+            // Avoid using setState during build
+            // Instead, update the state only when dialog is fully rendered
+            WidgetsBinding.instance.addPostFrameCallback((_) {
               setState(() {
                 selectedIcon = icon;
               });
-            },
-          );
-        }
+            });
+          },
+          isEditing: true,
+          initialIcon: initialIcon,
+          initialPriority: initialPriority,
+        );
+      }
+    );
+  }
+
+  // Save the edited task
+  void saveEditedTask() {
+    if (_editingIndex != null && _controller.text.isNotEmpty) {
+      setState(() {
+        double sliderValue = _sliderKey.currentState?.getSliderValue() ?? 1.0;
+        toDoList[_editingIndex!].name = _controller.text;
+        toDoList[_editingIndex!].priority = sliderValue;
+        toDoList[_editingIndex!].iconCodePoint = selectedIcon?.codePoint;
+        
+        sortTasksByPriority();
+        _saveToDoList();
+        
+        _editingIndex = null;
+        _controller.clear();
+        selectedIcon = null;
+        
+        Navigator.pop(context);
+      });
+    }
+  }
+
+  // Create a new task (existing function)
+  void createNewTask() {
+    _editingIndex = null;
+    _controller.clear();
+    selectedIcon = null;
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return DialogBox(
+          controller: _controller,
+          onSave: saveNewTask,
+          onCancel: () => Navigator.pop(context),
+          sliderKey: _sliderKey,
+          onIconSelected: (icon) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              setState(() {
+                selectedIcon = icon;
+              });
+            });
+          },
+          isEditing: false,
+        );
+      }
     );
   }
 
@@ -163,6 +232,7 @@ class _HomePageState extends State<HomePage> {
             taskIcon: toDoList[index].iconCodePoint != null ? IconData(toDoList[index].iconCodePoint!, fontFamily: 'MaterialIcons') : null,
             onChanged: (value) => checkBoxChanged(value, index),
             deleteFunction: (context) => deleteTask(index),
+            editFunction: (context) => editTask(index), // Add edit function
           );
         },
       ),

@@ -8,6 +8,7 @@ class ToDoTile extends StatelessWidget {
   final IconData? taskIcon;
   Function(bool?)? onChanged;
   Function(BuildContext)? deleteFunction;
+  Function(BuildContext)? editFunction; // Add edit function
 
   ToDoTile({
     super.key,
@@ -17,6 +18,7 @@ class ToDoTile extends StatelessWidget {
     required this.deleteFunction,
     required this.taskPriority,
     this.taskIcon,
+    this.editFunction, // Add edit function parameter
   });
 
   Color? taskPriorityColor() {
@@ -41,6 +43,19 @@ class ToDoTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 32, right: 32, top: 32),
       child: Slidable(
+        // Start action pane is for swiping from left to right (Edit)
+        startActionPane: ActionPane(
+          motion: const StretchMotion(),
+          children: [
+            SlidableAction(
+              onPressed: editFunction,
+              icon: Icons.edit,
+              backgroundColor: Colors.blue.shade300,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ],
+        ),
+        // End action pane is for swiping from right to left (Delete)
         endActionPane: ActionPane(
           motion: const StretchMotion(),
           children: [
