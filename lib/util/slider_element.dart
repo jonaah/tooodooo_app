@@ -42,8 +42,9 @@ class SliderElementState extends State<SliderElement> {
   Widget build(BuildContext context) {
     return Slider(
       value: _sliderValue,
+      min: 1, // Add minimum value
       max: 5,
-      divisions: 5,
+      divisions: 4, // Change to 4 since we now have 5 steps (1-5)
       activeColor: taskPriorityColor(_sliderValue),
       label: _sliderValue.round().toString(),
       onChanged: (double value) {

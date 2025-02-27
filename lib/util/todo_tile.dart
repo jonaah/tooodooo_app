@@ -24,17 +24,17 @@ class ToDoTile extends StatelessWidget {
   Color? taskPriorityColor() {
     switch (taskPriority.toInt()) {
       case 1:
-        return Colors.blue[100];
+        return Colors.green[100]; // Lowest priority - relaxed green
       case 2:
-        return Colors.green[100];
+        return Colors.blue[100]; // Low priority - calm blue
       case 3:
-        return Colors.yellow[100];
+        return Colors.amber[100]; // Medium priority - attention amber
       case 4:
-        return Colors.orange[100];
+        return Colors.deepOrange[100]; // High priority - urgent orange
       case 5:
-        return Colors.red[100];
+        return Colors.red[100]; // Highest priority - critical red
       default:
-        return Colors.grey[100];
+        return Colors.grey[100]; // No priority assigned
     }
   }
 
@@ -50,6 +50,7 @@ class ToDoTile extends StatelessWidget {
             SlidableAction(
               onPressed: editFunction,
               icon: Icons.edit,
+              foregroundColor: Colors.white, // Ensuring edit icon is white
               backgroundColor: Colors.blue.shade300,
               borderRadius: BorderRadius.circular(12),
             ),
@@ -62,6 +63,7 @@ class ToDoTile extends StatelessWidget {
             SlidableAction(
               onPressed: deleteFunction,
               icon: Icons.delete,
+              foregroundColor: Colors.white, // Ensuring delete icon is white
               backgroundColor: Colors.red.shade300,
               borderRadius: BorderRadius.circular(12),
             )
