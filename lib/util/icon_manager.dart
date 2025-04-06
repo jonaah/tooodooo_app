@@ -1,105 +1,44 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tooodooo_app/util/app_icons.dart';
 
 class IconManager {
-  static const String _recentIconsKey = 'recentIcons';
+  static const String _recentIconsKey = 'recentIconNames'; // Changed from recentIcons
   static const int _maxRecentIcons = 10;
   
-  // List of all available icons
-  static final List<IconData> allIcons = [
-    Icons.lock_clock,
-    Icons.sports_soccer,
-    Icons.favorite,
-    Icons.home,
-    Icons.work_history,
-    Icons.school,
-    Icons.pets,
-    Icons.music_note,
-    Icons.sports_football,
-    Icons.local_florist,
-    Icons.restaurant,
-    Icons.shopping_cart,
-    Icons.flight,
-    Icons.directions_car,
-    Icons.fitness_center,
-    Icons.book,
-    Icons.code,
-    Icons.beach_access,
-    Icons.call,
-    Icons.camera_alt,
-    Icons.movie,
-    Icons.games,
-    Icons.headset,
-    Icons.hiking,
-    Icons.hotel,
-    Icons.bug_report,
-    Icons.celebration,
-    Icons.cleaning_services,
-    Icons.coffee,
-    Icons.computer,
-    Icons.medication,
-    Icons.sunny,
-    Icons.umbrella,
-    Icons.water_drop,
-    Icons.landscape,
-    Icons.forest,
-  ];
-
-  // Default icons that will be shown initially if no recent icons exist
-  static final List<IconData> defaultIcons = [
-    Icons.lock_clock,
-    Icons.sports_soccer,
-    Icons.favorite,
-    Icons.home,
-    Icons.work_history,
-    Icons.school,
-    Icons.pets,
-    Icons.music_note,
-    Icons.sports_football,
-    Icons.local_florist,
-  ];
+  // Use AppIcons for all icon lists
+  static final List<IconData> allIcons = AppIcons.allIcons;
+  static final List<IconData> defaultIcons = AppIcons.defaultIcons;
   
-  static List<IconData> _recentIcons = [];
+  // Store icon names rather than IconData objects
+  static List<String> _recentIconNames = [];
   static bool _hasLoadedRecentIcons = false;
   
-  // Get recently used icons, fallback to default icons if empty
-  // This will ALWAYS return exactly 10 icons, either from recent history or defaults
+  // Get recently used icons
   static List<IconData> get recentIcons {
-    if (_recentIcons.isEmpty) {
-      // If no recent icons, return default icons
-      return List<IconData>.from(defaultIcons);
-    } else if (_recentIcons.length < _maxRecentIcons) {
-      // If we have some recent icons but fewer than 10, 
-      // pad with default icons that aren't already in the recent list
-      List<IconData> result = List<IconData>.from(_recentIcons);
-      
-      // Add default icons that aren't in the recent list
+    List<IconData> result = [];
+    
+    // Convert stored names to icons
+    for (String name in _recentIconNames) {
+      IconData? icon = AppIcons.getIcon(name);
+      if (icon != null) result.add(icon);
+    }
+    
+    // If we don't have enough recent icons, use defaults
+    if (result.length < _maxRecentIcons) {
       for (var icon in defaultIcons) {
         if (result.length >= _maxRecentIcons) break;
-        if (!result.any((i) => i.codePoint == icon.codePoint)) {
+        if (!result.contains(icon)) {
           result.add(icon);
         }
       }
-      
-      // If we still don't have enough, add more from allIcons
-      if (result.length < _maxRecentIcons) {
-        for (var icon in allIcons) {
-          if (result.length >= _maxRecentIcons) break;
-          if (!result.any((i) => i.codePoint == icon.codePoint)) {
-            result.add(icon);
-          }
-        }
-      }
-      
-      return result;
-    } else {
-      // Just return the recent icons (should be exactly 10)
-      return List<IconData>.from(_recentIcons);
     }
+    
+    return result;
   }
   
-  // Load recently used icons from SharedPreferences
+  // Load icons from SharedPreferences (by name)
   static Future<void> loadRecentIcons() async {
     if (_hasLoadedRecentIcons) return;
     
@@ -108,34 +47,32 @@ class IconManager {
     
     if (recentIconsString != null) {
       final List<dynamic> decoded = jsonDecode(recentIconsString);
-      _recentIcons = decoded.map((codePoint) => 
-        IconData(codePoint, fontFamily: 'MaterialIcons')
-      ).toList();
+      _recentIconNames = List<String>.from(decoded);
     }
     
     _hasLoadedRecentIcons = true;
   }
   
-  // Save recently used icons to SharedPreferences
+  // Save icon names to SharedPreferences
   static Future<void> saveRecentIcons() async {
     final prefs = await SharedPreferences.getInstance();
-    final encoded = jsonEncode(
-      _recentIcons.map((icon) => icon.codePoint).toList()
-    );
-    await prefs.setString(_recentIconsKey, encoded);
+    await prefs.setString(_recentIconsKey, jsonEncode(_recentIconNames));
   }
   
   // Add an icon to recently used
   static void addToRecentIcons(IconData icon) {
+    String? iconName = AppIcons.getName(icon);
+    if (iconName == null) return;
+    
     // Remove if already exists
-    _recentIcons.removeWhere((e) => e.codePoint == icon.codePoint);
+    _recentIconNames.remove(iconName);
     
     // Add to the beginning
-    _recentIcons.insert(0, icon);
+    _recentIconNames.insert(0, iconName);
     
     // Trim if too many
-    if (_recentIcons.length > _maxRecentIcons) {
-      _recentIcons = _recentIcons.sublist(0, _maxRecentIcons);
+    if (_recentIconNames.length > _maxRecentIcons) {
+      _recentIconNames = _recentIconNames.sublist(0, _maxRecentIcons);
     }
     
     // Save to SharedPreferences
@@ -149,6 +86,6 @@ class IconManager {
   
   // Check if we're using default icons or actual recent icons
   static bool get isUsingDefaultIcons {
-    return _recentIcons.isEmpty;
+    return _recentIconNames.isEmpty;
   }
 }

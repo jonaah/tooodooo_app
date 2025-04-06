@@ -5,28 +5,33 @@ import 'package:tooodooo_app/util/todo_tile.dart';
 import 'package:tooodooo_app/util/slider_element.dart';
 import 'package:tooodooo_app/util/dialog_box.dart';
 import 'package:tooodooo_app/util/icon_manager.dart';
+import 'package:tooodooo_app/util/app_icons.dart';
 
 class Task {
   String name;
   bool completed;
   double priority;
-  int? iconCodePoint;
+  String? iconName;  // Changed from iconCodePoint to iconName
 
-  Task(this.name, this.completed, this.priority, this.iconCodePoint);
+  Task(this.name, this.completed, this.priority, this.iconName);
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
     json['name'],
     json['completed'],
     json['priority'],
-    json['iconCodePoint'],
+    json['iconName'],  // Changed from iconCodePoint to iconName
   );
 
   Map<String, dynamic> toJson() => {
     'name': name,
     'completed': completed,
     'priority': priority,
-    'iconCodePoint': iconCodePoint,
+    'iconName': iconName,  // Changed from iconCodePoint to iconName
   };
+
+  IconData? getIcon() {
+    return AppIcons.getIcon(iconName);
+  }
 }
 
 
@@ -80,7 +85,8 @@ class _HomePageState extends State<HomePage> {
     if (_controller.text.isNotEmpty) {
       setState(() {
         double sliderValue = _sliderKey.currentState?.getSliderValue() ?? 1.0;
-        toDoList.add(Task(_controller.text, false, sliderValue, selectedIcon?.codePoint));
+        String? iconName = AppIcons.getName(selectedIcon);
+        toDoList.add(Task(_controller.text, false, sliderValue, iconName));
         sortTasksByPriority(); // Sortiert die Liste nach Priorität
         _saveToDoList();
         Navigator.pop(context); // Dialog schließen
@@ -116,8 +122,7 @@ class _HomePageState extends State<HomePage> {
   void editTask(int index) {
     _editingIndex = index;
     _controller.text = toDoList[index].name;
-    selectedIcon = toDoList[index].iconCodePoint != null ? 
-                  IconData(toDoList[index].iconCodePoint!, fontFamily: 'MaterialIcons') : null;
+    selectedIcon = toDoList[index].getIcon();
     
     final initialPriority = toDoList[index].priority;
     final initialIcon = selectedIcon;
@@ -159,7 +164,7 @@ class _HomePageState extends State<HomePage> {
         double sliderValue = _sliderKey.currentState?.getSliderValue() ?? 1.0;
         toDoList[_editingIndex!].name = _controller.text;
         toDoList[_editingIndex!].priority = sliderValue;
-        toDoList[_editingIndex!].iconCodePoint = selectedIcon?.codePoint;
+        toDoList[_editingIndex!].iconName = AppIcons.getName(selectedIcon);
         
         sortTasksByPriority();
         _saveToDoList();
@@ -232,7 +237,7 @@ class _HomePageState extends State<HomePage> {
             taskName: toDoList[index].name,
             taskCompleted: toDoList[index].completed,
             taskPriority: toDoList[index].priority,
-            taskIcon: toDoList[index].iconCodePoint != null ? IconData(toDoList[index].iconCodePoint!, fontFamily: 'MaterialIcons') : null,
+            taskIcon: toDoList[index].getIcon(),
             onChanged: (value) => checkBoxChanged(value, index),
             deleteFunction: (context) => deleteTask(index),
             editFunction: (context) => editTask(index), // Add edit function
