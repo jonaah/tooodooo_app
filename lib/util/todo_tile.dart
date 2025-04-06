@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
+// This file defines a customizable to-do item widget used throughout the app.
+// It displays tasks with visual indicators for completion status and priority,
+// and supports swipe gestures for editing and deleting tasks.
 class ToDoTile extends StatelessWidget {
   final String taskName;
   final bool taskCompleted;
   final double taskPriority;
   final IconData? taskIcon;
-  Function(bool?)? onChanged;
-  Function(BuildContext)? deleteFunction;
-  Function(BuildContext)? editFunction; // Add edit function
+  final Duration? taskDuration; // Changed from time to duration
+  final Function(bool?)? onChanged;
+  final Function(BuildContext)? deleteFunction;
+  final Function(BuildContext)? editFunction;
 
   ToDoTile({
     super.key,
@@ -18,9 +22,13 @@ class ToDoTile extends StatelessWidget {
     required this.deleteFunction,
     required this.taskPriority,
     this.taskIcon,
-    this.editFunction, // Add edit function parameter
+    this.taskDuration, // Changed parameter
+    this.editFunction,
   });
 
+  // Returns a color based on the task priority level
+  // Higher priority tasks have warmer colors (orange/red)
+  // Lower priority tasks have cooler colors (blue/green)
   Color? taskPriorityColor() {
     switch (taskPriority.toInt()) {
       case 1:
@@ -36,6 +44,16 @@ class ToDoTile extends StatelessWidget {
       default:
         return Colors.grey[100]; // No priority assigned
     }
+  }
+
+  // Format duration to display in a readable format (e.g. "02:30" format)
+  String formattedDuration() {
+    if (taskDuration == null) return "--:--";
+
+    final hours = taskDuration!.inHours;
+    final minutes = taskDuration!.inMinutes % 60;
+
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -74,7 +92,7 @@ class ToDoTile extends StatelessWidget {
             onChanged!(!taskCompleted);
           },
           child: Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20), // Reduced padding
             decoration: BoxDecoration(
               color: taskPriorityColor(),
               borderRadius: BorderRadius.circular(12),
@@ -87,17 +105,41 @@ class ToDoTile extends StatelessWidget {
                   activeColor: Colors.black,
                 ),
                 Expanded(
-                  child: Text(
-                    taskName,
-                    style: TextStyle(
-                      fontSize: 24,
-                      decoration: taskCompleted
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        taskName,
+                        style: TextStyle(
+                          fontSize: 18, // Reduced font size
+                          decoration: taskCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
+                        maxLines: 2, // Limit to 2 lines
+                        overflow: TextOverflow.ellipsis, // Add ellipsis if text is too long
+                      ),
+                      const SizedBox(height: 4), // Spacing between name and duration
+                      Row(
+                        children: [
+                          Icon(Icons.timer, size: 14, color: Colors.black54), // Smaller icon
+                          const SizedBox(width: 4),
+                          Text(
+                            formattedDuration(),
+                            style: TextStyle(
+                              fontSize: 12, // Smaller font size
+                              color: Colors.black54,
+                              decoration: taskCompleted
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                if (taskIcon != null) Icon(taskIcon),
+                if (taskIcon != null) Icon(taskIcon, size: 20), // Slightly smaller icon
               ],
             ),
           ),

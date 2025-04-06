@@ -3,6 +3,7 @@ import 'package:tooodooo_app/pages/emoji_picker_page.dart';
 import 'package:tooodooo_app/util/icon_manager.dart';
 import 'package:tooodooo_app/util/my_button.dart';
 import 'package:tooodooo_app/util/slider_element.dart';
+import 'package:tooodooo_app/util/duration_picker.dart';
 
 class DialogBox extends StatefulWidget {
   final TextEditingController controller;
@@ -10,9 +11,12 @@ class DialogBox extends StatefulWidget {
   final VoidCallback onCancel;
   final GlobalKey<SliderElementState> sliderKey;
   final Function(IconData) onIconSelected;
-  final bool isEditing; // Add flag for editing mode
-  final IconData? initialIcon; // Add initial icon for editing
-  final double? initialPriority; // Add initial priority parameter
+  final int durationHours;
+  final int durationMinutes;
+  final Function(int, int) onDurationChanged;
+  final bool isEditing;
+  final IconData? initialIcon;
+  final double? initialPriority;
 
   const DialogBox({
     super.key,
@@ -21,9 +25,12 @@ class DialogBox extends StatefulWidget {
     required this.onCancel,
     required this.sliderKey,
     required this.onIconSelected,
-    this.isEditing = false, // Default is not editing
+    required this.durationHours,
+    required this.durationMinutes,
+    required this.onDurationChanged,
+    this.isEditing = false,
     this.initialIcon,
-    this.initialPriority, // Add parameter
+    this.initialPriority,
   });
 
   @override
@@ -32,22 +39,20 @@ class DialogBox extends StatefulWidget {
 
 class _DialogBoxState extends State<DialogBox> {
   IconData? _selectedIcon;
+  late int hours;
+  late int minutes;
 
   @override
   void initState() {
     super.initState();
-    // Initialize with initial icon if provided, but don't call the callback yet
     _selectedIcon = widget.initialIcon;
-    
-    // Use post-frame callback to set up initial values safely
+    hours = widget.durationHours;
+    minutes = widget.durationMinutes;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Set priority if provided
       if (widget.initialPriority != null) {
         widget.sliderKey.currentState?.setSliderValue(widget.initialPriority!);
       }
-      
-      // No need to call onIconSelected here - we've already set _selectedIcon
-      // and the parent component already knows about the initial icon
     });
   }
 
@@ -72,12 +77,32 @@ class _DialogBoxState extends State<DialogBox> {
     );
   }
 
+  String formattedDuration() {
+    if (hours == 0 && minutes == 0) {
+      return "--:--";
+    }
+    return "${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> _openDurationPicker() async {
+    final result = await showDurationPicker(
+      context: context,
+      initialHours: hours,
+      initialMinutes: minutes,
+    );
+
+    if (result != null) {
+      setState(() {
+        hours = result['hours'] ?? 0;
+        minutes = result['minutes'] ?? 0;
+        widget.onDurationChanged(hours, minutes);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Get icons to display - these should be exactly 10 icons
     final List<IconData> displayIcons = IconManager.recentIcons;
-    
-    // Safety check - ensure we have enough icons to display
     final int firstRowCount = displayIcons.length >= 5 ? 5 : displayIcons.length;
     final bool hasSecondRow = displayIcons.length > 5;
     final int secondRowCount = hasSecondRow ? displayIcons.length - 5 : 0;
@@ -91,10 +116,10 @@ class _DialogBoxState extends State<DialogBox> {
       ),
       content: SizedBox(
         width: 300,
-        height: 350, // Increased height to fix overflow
-        child: SingleChildScrollView( // Added ScrollView to handle overflow
+        height: 450,
+        child: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Use min size to avoid expansion
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Center(
@@ -120,7 +145,7 @@ class _DialogBoxState extends State<DialogBox> {
               ),
               SliderElement(key: widget.sliderKey),
               const Padding(
-                padding: EdgeInsets.only(top: 4.0, bottom: 2.0), // Reduced padding
+                padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
                 child: Text(
                   "Task Icon",
                   style: TextStyle(
@@ -129,7 +154,6 @@ class _DialogBoxState extends State<DialogBox> {
                   ),
                 ),
               ),
-              // First row of icons (up to 5)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: displayIcons.take(firstRowCount).map((icon) {
@@ -142,15 +166,14 @@ class _DialogBoxState extends State<DialogBox> {
                         color: isSelected ? Colors.blue : Colors.grey[300],
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Icon(icon, color: isSelected ? Colors.white : Colors.black, size: 24), // Reduced size
+                      child: Icon(icon, color: isSelected ? Colors.white : Colors.black, size: 24),
                     ),
                   );
                 }).toList(),
               ),
-              // Second row of icons if available
               if (hasSecondRow)
                 Padding(
-                  padding: const EdgeInsets.only(top: 6.0), // Reduced padding
+                  padding: const EdgeInsets.only(top: 6.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: displayIcons.sublist(5, 5 + secondRowCount).map((icon) {
@@ -163,15 +186,14 @@ class _DialogBoxState extends State<DialogBox> {
                             color: isSelected ? Colors.blue[300] : Colors.grey[300],
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Icon(icon, color: isSelected ? Colors.white : Colors.black, size: 24), // Reduced size
+                          child: Icon(icon, color: isSelected ? Colors.white : Colors.black, size: 24),
                         ),
                       );
                     }).toList(),
                   ),
                 ),
-              // Button to access more icons
               Padding(
-                padding: const EdgeInsets.only(top: 4.0, bottom: 4.0), // Reduced padding
+                padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
                 child: TextButton(
                   onPressed: _openEmojiPicker,
                   child: const Text(
@@ -183,7 +205,50 @@ class _DialogBoxState extends State<DialogBox> {
                   ),
                 ),
               ),
-              // Save/Cancel buttons
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: Text(
+                  "Duration",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Duration',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  InkWell(
+                    onTap: _openDurationPicker,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.timer, size: 16),
+                          const SizedBox(width: 5),
+                          Text(
+                            formattedDuration(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
