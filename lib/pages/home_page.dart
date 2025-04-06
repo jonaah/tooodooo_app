@@ -39,7 +39,9 @@ class Task {
 
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Function(List<Task>)? onTasksUpdated;
+  
+  const HomePage({super.key, this.onTasksUpdated});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -61,6 +63,13 @@ class _HomePageState extends State<HomePage> {
     IconManager.loadRecentIcons(); // Initialize icon manager
   }
 
+  // Update the parent navigator whenever todo list changes
+  void _notifyTasksUpdated() {
+    if (widget.onTasksUpdated != null) {
+      widget.onTasksUpdated!(toDoList);
+    }
+  }
+
   // Aufgabenliste laden und in die toDoList einfügen
   void _loadToDoList() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -69,6 +78,7 @@ class _HomePageState extends State<HomePage> {
       List<dynamic> decodedList = jsonDecode(toDoListString);
       setState(() {
         toDoList = decodedList.map((item) => Task.fromJson(item)).toList();
+        _notifyTasksUpdated(); // Notify after loading
       });
     }
   }
@@ -77,6 +87,7 @@ class _HomePageState extends State<HomePage> {
   void _saveToDoList() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString('toDoList', jsonEncode(toDoList.map((task) => task.toJson()).toList()));
+    _notifyTasksUpdated(); // Notify after saving
   }
 
   void checkBoxChanged(bool? value, int index) {
