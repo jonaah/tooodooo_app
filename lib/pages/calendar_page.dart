@@ -18,15 +18,19 @@ class _CalendarPageState extends State<CalendarPage> {
   
   final ScrollController _scrollController = ScrollController();
 
+  // Each hour will be divided into 4 quarter-hour segments
+  final int _segmentsPerHour = 4;
+  final double _heightPerSegment = 20.0; // 20 height per 15-min segment (80 per hour)
+
   @override
   void initState() {
     super.initState();
     _focusedDay = DateTime.now();
     _generateWeekDays();
     
-    // Scroll to morning hours (8 AM) after rendering
+    // Scroll to morning hours (8 AM) after rendering, adjusted for segments
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollController.jumpTo(8 * 60.0); // 8 hours * 60 height per hour
+      _scrollController.jumpTo(8 * _segmentsPerHour * _heightPerSegment); // 8 hours * 4 segments * height per segment
     });
   }
 
@@ -235,17 +239,27 @@ class _CalendarPageState extends State<CalendarPage> {
                   child: SingleChildScrollView(
                     controller: _scrollController,
                     child: Column(
-                      children: List.generate(24, (hourIndex) {
+                      children: List.generate(24 * _segmentsPerHour, (index) {
+                        final hourIndex = index ~/ _segmentsPerHour; // Integer division to get hour
+                        final minuteIndex = (index % _segmentsPerHour) * 15; // 0, 15, 30, 45
+                        final isHourStart = minuteIndex == 0;
+                        
+                        // Apply border at the top instead of bottom to make it clearer which time is meant for the row
                         return Container(
-                          height: 60,
+                          height: _heightPerSegment,
                           decoration: BoxDecoration(
                             border: Border(
-                              bottom: BorderSide(color: Colors.grey.shade800, width: 0.5)
+                              top: isHourStart && index > 0 
+                                ? BorderSide(color: Colors.grey.shade700, width: 0.5) 
+                                : BorderSide.none,
+                              bottom: !isHourStart 
+                                ? BorderSide(color: Colors.grey.shade800.withOpacity(0.3), width: 0.2)
+                                : BorderSide.none
                             )
                           ),
                           child: Row(
                             children: [
-                              // Time indicator column
+                              // Time indicator column - only show hours, not 15-minute intervals
                               SizedBox(
                                 width: 50,
                                 child: Container(
@@ -256,14 +270,18 @@ class _CalendarPageState extends State<CalendarPage> {
                                     )
                                   ),
                                   alignment: Alignment.center,
-                                  child: Text(
+                                  // Only show time on the hour
+                                  child: isHourStart ? Text(
                                     '${hourIndex.toString().padLeft(2, '0')}:00',
-                                    style: TextStyle(color: Colors.white, fontSize: 12),
-                                  ),
+                                    style: TextStyle(
+                                      color: Colors.white, 
+                                      fontSize: 12
+                                    ),
+                                  ) : null,
                                 ),
                               ),
                               
-                              // Each day's column for this hour
+                              // Each day's column for this time slot
                               ...List.generate(7, (dayIndex) {
                                 final day = _weekDays[dayIndex];
                                 final isToday = _isToday(day);
@@ -279,7 +297,7 @@ class _CalendarPageState extends State<CalendarPage> {
                                         right: BorderSide(color: Colors.grey.shade700, width: 1)
                                       )
                                     ),
-                                    child: _buildTasksForHour(day, hourIndex),
+                                    child: _buildTasksForTimeSlot(day, hourIndex, minuteIndex),
                                   ),
                                 );
                               }),
@@ -372,22 +390,22 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
   
-  Widget _buildTasksForHour(DateTime day, int hour) {
-    // In the future, you can add task scheduling and display tasks at specific hours
-    // For now, we'll just show a placeholder
+  Widget _buildTasksForTimeSlot(DateTime day, int hour, int minute) {
+    // In the future, you can add task scheduling and display tasks at specific time slots
+    // For now, we'll just show a placeholder at 9:15 as an example
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 2.0),
       alignment: Alignment.centerLeft,
-      child: hour == 9 && _isToday(day) ? 
+      child: hour == 9 && minute == 15 && _isToday(day) ? 
         Container(
-          padding: const EdgeInsets.all(4.0),
+          padding: const EdgeInsets.all(2.0),
           decoration: BoxDecoration(
             color: Colors.amber.withOpacity(0.7),
             borderRadius: BorderRadius.circular(4.0),
           ),
           child: const Text(
             'Example Task',
-            style: TextStyle(fontSize: 10),
+            style: TextStyle(fontSize: 8),
             overflow: TextOverflow.ellipsis,
           ),
         ) : null,
