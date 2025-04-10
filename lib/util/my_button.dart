@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
-
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class MyButton extends StatelessWidget {
   final String text;
-  VoidCallback onPressed;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+  
   MyButton({
     super.key,
     required this.text,
     required this.onPressed,
+    this.isPrimary = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return MaterialButton(
+    return ElevatedButton(
       onPressed: onPressed,
-      color: Colors.grey[300],
-      textColor: Colors.black,
+      style: isPrimary ? AppTheme.primaryButtonStyle : AppTheme.secondaryButtonStyle,
       child: Text(text),
     );
   }

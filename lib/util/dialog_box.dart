@@ -4,6 +4,7 @@ import 'package:tooodooo_app/util/icon_manager.dart';
 import 'package:tooodooo_app/util/my_button.dart';
 import 'package:tooodooo_app/util/slider_element.dart';
 import 'package:tooodooo_app/util/duration_picker.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class DialogBox extends StatefulWidget {
   final TextEditingController controller;
@@ -108,11 +109,18 @@ class _DialogBoxState extends State<DialogBox> {
     final int secondRowCount = hasSecondRow ? displayIcons.length - 5 : 0;
 
     return AlertDialog(
-      backgroundColor: Colors.brown[200],
+      backgroundColor: AppTheme.primaryColor,
       title: Text(
         widget.isEditing ? "Edit Task" : "Add Task",
         textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: AppTheme.textColor,
+          fontSize: 22,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
       content: SizedBox(
         width: 300,
@@ -122,58 +130,96 @@ class _DialogBoxState extends State<DialogBox> {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              // Task input field
               Center(
                 child: TextField(
                   controller: widget.controller,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: AppTheme.textColor),
+                  decoration: InputDecoration(
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                      borderSide: BorderSide(color: AppTheme.accentColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
+                      borderSide: BorderSide(color: AppTheme.accentColor, width: 2),
                     ),
                     hintText: 'Enter Task',
+                    hintStyle: TextStyle(color: AppTheme.textColor.withOpacity(0.6)),
+                    filled: true,
+                    fillColor: Colors.grey[800],
                   ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(top: 8.0),
+              
+              // Priority section
+              Padding(
+                padding: EdgeInsets.only(top: AppTheme.smallPadding),
                 child: Text(
                   "Priority Level",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: AppTheme.textColor,
                     fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               SliderElement(key: widget.sliderKey),
-              const Padding(
-                padding: EdgeInsets.only(top: 4.0, bottom: 2.0),
+              
+              // Task icon section
+              Padding(
+                padding: EdgeInsets.only(top: AppTheme.smallPadding / 2, bottom: AppTheme.smallPadding / 2),
                 child: Text(
                   "Task Icon",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: AppTheme.textColor,
                     fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: displayIcons.take(firstRowCount).map((icon) {
-                  final isSelected = _selectedIcon == icon;
-                  return GestureDetector(
-                    onTap: () => _handleIconTap(icon),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.blue : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(4),
+              
+              // First row of icons
+              Container(
+                margin: EdgeInsets.only(top: AppTheme.smallPadding / 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: displayIcons.take(firstRowCount).map((icon) {
+                    final isSelected = _selectedIcon == icon;
+                    return GestureDetector(
+                      onTap: () => _handleIconTap(icon),
+                      child: Container(
+                        padding: EdgeInsets.all(AppTheme.smallPadding),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppTheme.accentColor : Colors.grey[800],
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          icon, 
+                          color: isSelected ? Colors.white : AppTheme.textColor,
+                          size: AppTheme.iconSize,
+                        ),
                       ),
-                      child: Icon(icon, color: isSelected ? Colors.white : Colors.black, size: 24),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
+              
+              // Second row of icons (if needed)
               if (hasSecondRow)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6.0),
+                Container(
+                  margin: EdgeInsets.only(top: AppTheme.smallPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: displayIcons.sublist(5, 5 + secondRowCount).map((icon) {
@@ -181,81 +227,106 @@ class _DialogBoxState extends State<DialogBox> {
                       return GestureDetector(
                         onTap: () => _handleIconTap(icon),
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: EdgeInsets.all(AppTheme.smallPadding),
                           decoration: BoxDecoration(
-                            color: isSelected ? Colors.blue[300] : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4),
+                            color: isSelected ? AppTheme.accentColor : Colors.grey[800],
+                            borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
                           ),
-                          child: Icon(icon, color: isSelected ? Colors.white : Colors.black, size: 24),
+                          child: Icon(
+                            icon, 
+                            color: isSelected ? Colors.white : AppTheme.textColor,
+                            size: AppTheme.iconSize,
+                          ),
                         ),
                       );
                     }).toList(),
                   ),
                 ),
+              
+              // More icons button
               Padding(
-                padding: const EdgeInsets.only(top: 4.0, bottom: 4.0),
+                padding: EdgeInsets.only(top: AppTheme.smallPadding, bottom: AppTheme.smallPadding / 2),
                 child: TextButton(
                   onPressed: _openEmojiPicker,
-                  child: const Text(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.accentColor,
+                    backgroundColor: Colors.grey[800],
+                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                    ),
+                  ),
+                  child: Text(
                     "More Icons",
                     style: TextStyle(
-                      color: Colors.blue,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.only(top: 8.0),
+              
+              // Duration section
+              Padding(
+                padding: EdgeInsets.only(top: AppTheme.defaultPadding - 4),
                 child: Text(
                   "Duration",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: AppTheme.textColor,
                     fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Duration',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  InkWell(
-                    onTap: _openDurationPicker,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.timer, size: 16),
-                          const SizedBox(width: 5),
-                          Text(
-                            formattedDuration(),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
+              
+              // Duration picker button
+              Container(
+                margin: EdgeInsets.only(top: AppTheme.smallPadding),
+                child: InkWell(
+                  onTap: _openDurationPicker,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                      border: Border.all(color: AppTheme.accentColor),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.timer, size: AppTheme.iconSize, color: AppTheme.accentColor),
+                        SizedBox(width: AppTheme.smallPadding),
+                        Text(
+                          formattedDuration(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.textColor,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  MyButton(text: "Save", onPressed: widget.onSave),
-                  const SizedBox(width: 50),
-                  MyButton(text: "Cancel", onPressed: widget.onCancel),
-                ],
+              
+              // Button row
+              Container(
+                margin: EdgeInsets.only(top: AppTheme.defaultPadding),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    MyButton(text: "Save", onPressed: widget.onSave),
+                    MyButton(text: "Cancel", onPressed: widget.onCancel),
+                  ],
+                ),
               ),
             ],
           ),

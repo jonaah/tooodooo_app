@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tooodooo_app/util/icon_manager.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class EmojiPickerPage extends StatelessWidget {
   final List<IconData> recentlyUsed;
@@ -16,14 +17,14 @@ class EmojiPickerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueGrey[100],
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text("Select Icon"),
-        backgroundColor: Colors.brown[400],
+        title: const Text("Select Icon", style: AppTheme.appBarTitle),
+        backgroundColor: AppTheme.primaryColor,
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(AppTheme.defaultPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -32,24 +33,26 @@ class EmojiPickerPage extends StatelessWidget {
                 IconManager.isUsingDefaultIcons 
                   ? "Default Icons" 
                   : "Recently Used",
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
+                  color: AppTheme.textColor,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: AppTheme.smallPadding),
               _buildIconGrid(recentlyUsed, context),
-              const Divider(thickness: 2),
-              const SizedBox(height: 8),
+              Divider(thickness: 2, color: AppTheme.dividerColor),
+              SizedBox(height: AppTheme.smallPadding),
 
-              const Text(
+              Text(
                 "All Icons",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
+                  color: AppTheme.textColor,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: AppTheme.smallPadding),
               _buildIconGrid(allEmojis, context),
             ],
           ),
@@ -79,17 +82,24 @@ class EmojiPickerPage extends StatelessWidget {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[800],
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
               border: isDefaultIcon && icons != IconManager.defaultIcons && !IconManager.isUsingDefaultIcons
-                ? Border.all(color: Colors.blue, width: 2)
+                ? Border.all(color: AppTheme.accentColor, width: 2)
                 : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(AppTheme.smallPadding),
             child: Icon(
               icon, 
-              size: 32,
-              color: Colors.black,
+              size: AppTheme.iconSize + 8,
+              color: AppTheme.textColor,
             ),
           ),
         );

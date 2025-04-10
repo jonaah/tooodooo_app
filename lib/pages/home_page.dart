@@ -6,6 +6,7 @@ import 'package:tooodooo_app/util/slider_element.dart';
 import 'package:tooodooo_app/util/dialog_box.dart';
 import 'package:tooodooo_app/util/icon_manager.dart';
 import 'package:tooodooo_app/util/app_icons.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class Task {
   String name;
@@ -278,26 +279,22 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 87, 89, 90),
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text(
             'TO DO',
-            style: TextStyle(
-                color: Color.fromARGB(255, 222, 222, 222),
-                fontSize: 32,
-                fontWeight: FontWeight.bold
-            )
+            style: AppTheme.appBarTitle
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(255, 73, 68, 67),
+        backgroundColor: AppTheme.primaryColor,
         elevation: 0,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: createNewTask,
-        backgroundColor: const Color.fromARGB(255, 73, 68, 67),
-        child: const Icon(
+        backgroundColor: AppTheme.primaryColor,
+        child: Icon(
           Icons.add,
-          color: Colors.white, // Set the icon color to white
+          color: AppTheme.textColor,
         ),
       ),
       body: ListView.builder(
@@ -308,7 +305,7 @@ class _HomePageState extends State<HomePage> {
             taskCompleted: toDoList[index].completed,
             taskPriority: toDoList[index].priority,
             taskIcon: toDoList[index].getIcon(),
-            taskDuration: toDoList[index].duration, // Pass duration instead of time
+            taskDuration: toDoList[index].duration,
             onChanged: (value) => checkBoxChanged(value, index),
             deleteFunction: (context) => deleteTask(index),
             editFunction: (context) => editTask(index),

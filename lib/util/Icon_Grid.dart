@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class IconGrid extends StatefulWidget {
   final List<IconData> icons;
@@ -28,6 +29,7 @@ class _IconGridState extends State<IconGrid> {
   Widget build(BuildContext context) {
     return GridView.builder(
       shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
         mainAxisSpacing: 8.0,
@@ -41,12 +43,20 @@ class _IconGridState extends State<IconGrid> {
           onTap: () => _handleIconTap(icon),
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? Colors.blue : Colors.grey,
-              borderRadius: BorderRadius.circular(4),
+              color: isSelected ? AppTheme.accentColor : Colors.grey[800],
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.black,
+              color: isSelected ? Colors.white : AppTheme.textColor,
+              size: AppTheme.iconSize,
             ),
           ),
         );

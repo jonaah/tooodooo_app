@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 // This file defines a customizable to-do item widget used throughout the app.
 // It displays tasks with visual indicators for completion status and priority,
@@ -9,7 +10,7 @@ class ToDoTile extends StatelessWidget {
   final bool taskCompleted;
   final double taskPriority;
   final IconData? taskIcon;
-  final Duration? taskDuration; // Changed from time to duration
+  final Duration? taskDuration;
   final Function(bool?)? onChanged;
   final Function(BuildContext)? deleteFunction;
   final Function(BuildContext)? editFunction;
@@ -22,28 +23,13 @@ class ToDoTile extends StatelessWidget {
     required this.deleteFunction,
     required this.taskPriority,
     this.taskIcon,
-    this.taskDuration, // Changed parameter
+    this.taskDuration,
     this.editFunction,
   });
 
-  // Returns a color based on the task priority level
-  // Higher priority tasks have warmer colors (orange/red)
-  // Lower priority tasks have cooler colors (blue/green)
+  // Returns a color based on the task priority level using our theme
   Color? taskPriorityColor() {
-    switch (taskPriority.toInt()) {
-      case 1:
-        return Colors.green[100]; // Lowest priority - relaxed green
-      case 2:
-        return Colors.blue[100]; // Low priority - calm blue
-      case 3:
-        return Colors.amber[100]; // Medium priority - attention amber
-      case 4:
-        return Colors.deepOrange[100]; // High priority - urgent orange
-      case 5:
-        return Colors.red[100]; // Highest priority - critical red
-      default:
-        return Colors.grey[100]; // No priority assigned
-    }
+    return AppTheme.getPriorityColor(taskPriority.toInt());
   }
 
   // Format duration to display in a readable format (e.g. "02:30" format)
@@ -58,8 +44,15 @@ class ToDoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the priority as int for style lookups
+    final priorityInt = taskPriority.toInt();
+    
     return Padding(
-      padding: const EdgeInsets.only(left: 32, right: 32, top: 32),
+      padding: EdgeInsets.only(
+        left: AppTheme.largePadding,
+        right: AppTheme.largePadding,
+        top: AppTheme.largePadding
+      ),
       child: Slidable(
         // Start action pane is for swiping from left to right (Edit)
         startActionPane: ActionPane(
@@ -68,9 +61,9 @@ class ToDoTile extends StatelessWidget {
             SlidableAction(
               onPressed: editFunction,
               icon: Icons.edit,
-              foregroundColor: Colors.white, // Ensuring edit icon is white
-              backgroundColor: Colors.blue.shade300,
-              borderRadius: BorderRadius.circular(12),
+              foregroundColor: Colors.white,
+              backgroundColor: AppTheme.accentColor,
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
             ),
           ],
         ),
@@ -81,9 +74,9 @@ class ToDoTile extends StatelessWidget {
             SlidableAction(
               onPressed: deleteFunction,
               icon: Icons.delete,
-              foregroundColor: Colors.white, // Ensuring delete icon is white
+              foregroundColor: Colors.white,
               backgroundColor: Colors.red.shade300,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
             )
           ],
         ),
@@ -92,17 +85,25 @@ class ToDoTile extends StatelessWidget {
             onChanged!(!taskCompleted);
           },
           child: Container(
-            padding: const EdgeInsets.all(20), // Reduced padding
+            padding: EdgeInsets.all(AppTheme.defaultPadding),
             decoration: BoxDecoration(
               color: taskPriorityColor(),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 3,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Checkbox(
                   value: taskCompleted,
                   onChanged: onChanged,
-                  activeColor: Colors.black,
+                  activeColor: AppTheme.primaryColor,
+                  checkColor: Colors.white,
                 ),
                 Expanded(
                   child: Column(
@@ -110,36 +111,37 @@ class ToDoTile extends StatelessWidget {
                     children: [
                       Text(
                         taskName,
-                        style: TextStyle(
-                          fontSize: 18, // Reduced font size
-                          decoration: taskCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
-                        maxLines: 2, // Limit to 2 lines
-                        overflow: TextOverflow.ellipsis, // Add ellipsis if text is too long
+                        style: taskCompleted 
+                            ? AppTheme.taskCompleted(priorityInt)
+                            : AppTheme.taskTitle(priorityInt),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4), // Spacing between name and duration
+                      SizedBox(height: AppTheme.smallPadding / 2),
                       Row(
                         children: [
-                          Icon(Icons.timer, size: 14, color: Colors.black54), // Smaller icon
+                          Icon(
+                            Icons.timer,
+                            size: AppTheme.smallIconSize,
+                            color: AppTheme.getTextColorForPriority(priorityInt).withOpacity(0.7),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             formattedDuration(),
-                            style: TextStyle(
-                              fontSize: 12, // Smaller font size
-                              color: Colors.black54,
-                              decoration: taskCompleted
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                            ),
+                            style: taskCompleted 
+                                ? AppTheme.taskSubtitleCompleted(priorityInt)
+                                : AppTheme.taskSubtitle(priorityInt),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                if (taskIcon != null) Icon(taskIcon, size: 20), // Slightly smaller icon
+                if (taskIcon != null) Icon(
+                  taskIcon,
+                  size: AppTheme.smallIconSize + 4,
+                  color: AppTheme.getTextColorForPriority(priorityInt),
+                ),
               ],
             ),
           ),

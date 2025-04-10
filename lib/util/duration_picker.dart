@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class DurationPickerDialog extends StatefulWidget {
   final int initialHours;
@@ -62,7 +63,19 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Set Duration'),
+      backgroundColor: AppTheme.primaryColor, // Removed opacity for clarity
+      title: Text(
+        'Set Duration',
+        style: TextStyle(
+          color: AppTheme.textColor,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+      ),
       content: Container(
         height: 180,
         child: Row(
@@ -72,6 +85,14 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
             SizedBox(
               width: 70,
               child: CupertinoPicker(
+                selectionOverlay: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: AppTheme.accentColor, width: 1.5),
+                      bottom: BorderSide(color: AppTheme.accentColor, width: 1.5),
+                    ),
+                  ),
+                ),
                 itemExtent: 32,
                 looping: false, // Don't loop hours
                 onSelectedItemChanged: (index) {
@@ -79,17 +100,20 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
                     _hours = index;
                   });
                 },
+                scrollController: FixedExtentScrollController(
+                  initialItem: _hours,
+                ),
                 children: List<Widget>.generate(24, (index) {
                   return Center(
                     child: Text(
                       '${index.toString().padLeft(2, '0')} h',
-                      style: TextStyle(fontSize: 20),
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: AppTheme.textColor,
+                      ),
                     ),
                   );
                 }),
-                scrollController: FixedExtentScrollController(
-                  initialItem: _hours,
-                ),
               ),
             ),
             
@@ -98,7 +122,11 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 ':',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 24, 
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor,
+                ),
               ),
             ),
             
@@ -106,6 +134,14 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
             SizedBox(
               width: 80,
               child: CupertinoPicker(
+                selectionOverlay: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: AppTheme.accentColor, width: 1.5),
+                      bottom: BorderSide(color: AppTheme.accentColor, width: 1.5),
+                    ),
+                  ),
+                ),
                 itemExtent: 32,
                 looping: true, // Allow minutes to loop
                 onSelectedItemChanged: _updateMinutes,
@@ -113,7 +149,10 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
                   return Center(
                     child: Text(
                       '${(index * 5).toString().padLeft(2, '0')} min',
-                      style: TextStyle(fontSize: 20),
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: AppTheme.textColor,
+                      ),
                     ),
                   );
                 }),
@@ -128,6 +167,9 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white70,
+          ),
           child: Text('Cancel'),
         ),
         TextButton(
@@ -137,6 +179,9 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
               'minutes': _minutes,
             });
           },
+          style: TextButton.styleFrom(
+            foregroundColor: AppTheme.accentColor,
+          ),
           child: Text('Save'),
         ),
       ],
