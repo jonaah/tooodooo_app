@@ -80,11 +80,14 @@ class ToDoTile extends StatelessWidget {
             )
           ],
         ),
-        child: GestureDetector(
+        child: InkWell(
           onTap: () {
             onChanged!(!taskCompleted);
           },
-          child: Container(
+          borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+          splashColor: Colors.white.withOpacity(0.3),
+          highlightColor: Colors.white.withOpacity(0.2),
+          child: Ink(
             padding: EdgeInsets.all(AppTheme.defaultPadding),
             decoration: BoxDecoration(
               color: taskPriorityColor(),
@@ -99,11 +102,31 @@ class ToDoTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Checkbox(
-                  value: taskCompleted,
-                  onChanged: onChanged,
-                  activeColor: AppTheme.primaryColor,
-                  checkColor: Colors.white,
+                // Make the checkbox more prominent
+                GestureDetector(
+                  onTap: () {
+                    onChanged!(!taskCompleted);
+                  },
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: taskCompleted ? Colors.black38 : Colors.transparent,
+                      border: Border.all(
+                        color: AppTheme.getTextColorForPriority(priorityInt).withOpacity(0.8),
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: taskCompleted
+                        ? Icon(
+                            Icons.check,
+                            size: 18,
+                            color: AppTheme.getTextColorForPriority(priorityInt),
+                          )
+                        : null,
+                  ),
                 ),
                 Expanded(
                   child: Column(

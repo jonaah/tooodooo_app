@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tooodooo_app/pages/home_page.dart';
 import 'package:tooodooo_app/pages/calendar_page.dart';
+import 'package:tooodooo_app/pages/today_tasks_page.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
 
 void main() {
@@ -30,6 +31,12 @@ class MainNavigator extends StatefulWidget {
 class _MainNavigatorState extends State<MainNavigator> {
   int _selectedIndex = 0;
   final List<Task> _tasks = [];
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
+  // Keys for each page to allow refreshing them
+  final GlobalKey<_MainNavigatorState> _navigatorKey = GlobalKey();
+  final GlobalKey<TodayTasksPageState> _todayPageKey = GlobalKey();
+  final GlobalKey<CalendarPageState> _calendarPageKey = GlobalKey();
 
   // Method to update tasks from HomePage
   void updateTasks(List<Task> newTasks) {
@@ -38,18 +45,42 @@ class _MainNavigatorState extends State<MainNavigator> {
       _tasks.addAll(newTasks);
     });
   }
+  
+  // Method to handle changes in appointments
+  void handleAppointmentsChanged(String action) {
+    // Force refresh of the Today page when calendar appointments change
+    if (_todayPageKey.currentState != null) {
+      _todayPageKey.currentState!.refreshAppointments();
+    }
+  }
+  
+  // Method to handle task removal from Today page
+  void handleTaskRemoved(String action) {
+    // Force refresh of the Calendar page when a task is removed from Today page
+    if (_calendarPageKey.currentState != null) {
+      _calendarPageKey.currentState!.refreshAppointments();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       body: IndexedStack(
         index: _selectedIndex,
         children: [
           HomePage(
             onTasksUpdated: updateTasks,
           ),
-          CalendarPage(
+          TodayTasksPage(
+            key: _todayPageKey,
             tasks: _tasks,
+            onTaskRemoved: handleTaskRemoved,
+          ),
+          CalendarPage(
+            key: _calendarPageKey,
+            tasks: _tasks,
+            onAppointmentsChanged: handleAppointmentsChanged,
           ),
         ],
       ),
@@ -67,6 +98,10 @@ class _MainNavigatorState extends State<MainNavigator> {
           BottomNavigationBarItem(
             icon: Icon(Icons.check_box),
             label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.today),
+            label: 'Today',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month),

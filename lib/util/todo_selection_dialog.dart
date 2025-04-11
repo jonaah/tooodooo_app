@@ -111,9 +111,9 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
                                 ),
                               )
                             : Text(
-                                'No duration set',
+                                'No duration set (will use 30min default)',
                                 style: TextStyle(
-                                  color: Colors.red.withOpacity(0.7),
+                                  color: AppTheme.textColor.withOpacity(0.7),
                                   fontSize: 12,
                                 ),
                               ),
@@ -123,19 +123,9 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
                             size: 16,
                           ),
                           onTap: () {
-                            if (task.duration == null) {
-                              // Show warning for tasks without duration
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Task needs a duration to be added to calendar'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            } else {
-                              // Return the selected task
-                              widget.onTaskSelected(task);
-                              Navigator.pop(context);
-                            }
+                            // Return the selected task (no duration check)
+                            widget.onTaskSelected(task);
+                            Navigator.pop(context);
                           },
                         ),
                       );
