@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:tooodooo_app/pages/home_page.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
 import 'package:tooodooo_app/util/todo_selection_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CalendarPage extends StatefulWidget {
   final List<Task>? tasks;
@@ -17,20 +19,23 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late CalendarController _calendarController;
   DateTime _selectedDate = DateTime.now();
-  
+
   // Store calendar appointments directly
   final List<Appointment> _appointments = [];
-  
+
   // Track last tap time for double-tap detection
   DateTime? _lastTapTime;
   DateTime? _lastTapPosition;
-  
+
   @override
   void initState() {
     super.initState();
     _calendarController = CalendarController();
     // Set the calendar view to week view initially
     _calendarController.view = CalendarView.week;
+
+    // Load saved appointments when the page initializes
+    _loadAppointments();
   }
 
   @override
@@ -39,14 +44,74 @@ class _CalendarPageState extends State<CalendarPage> {
     super.dispose();
   }
 
+  // Convert Appointment to JSON-serializable Map
+  Map<String, dynamic> _appointmentToJson(Appointment appointment) {
+    return {
+      'subject': appointment.subject,
+      'startTime': appointment.startTime.millisecondsSinceEpoch,
+      'endTime': appointment.endTime.millisecondsSinceEpoch,
+      'color': appointment.color.value,
+      'notes': appointment.notes,
+      'isAllDay': appointment.isAllDay,
+    };
+  }
+
+  // Create Appointment from JSON Map
+  Appointment _appointmentFromJson(Map<String, dynamic> json) {
+    return Appointment(
+      subject: json['subject'],
+      startTime: DateTime.fromMillisecondsSinceEpoch(json['startTime']),
+      endTime: DateTime.fromMillisecondsSinceEpoch(json['endTime']),
+      color: Color(json['color']),
+      notes: json['notes'],
+      isAllDay: json['isAllDay'] ?? false,
+    );
+  }
+
+  // Save appointments to SharedPreferences
+  Future<void> _saveAppointments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final List<Map<String, dynamic>> serializedAppointments =
+          _appointments.map((appointment) => _appointmentToJson(appointment)).toList();
+
+      await prefs.setString('calendar_appointments', jsonEncode(serializedAppointments));
+    } catch (e) {
+      // Handle potential errors during saving
+      debugPrint('Error saving appointments: $e');
+    }
+  }
+
+  // Load appointments from SharedPreferences
+  Future<void> _loadAppointments() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? appointmentsJson = prefs.getString('calendar_appointments');
+
+      if (appointmentsJson != null && appointmentsJson.isNotEmpty) {
+        final List<dynamic> decodedList = jsonDecode(appointmentsJson);
+
+        setState(() {
+          _appointments.clear();
+          for (var item in decodedList) {
+            _appointments.add(_appointmentFromJson(item));
+          }
+        });
+      }
+    } catch (e) {
+      // Handle potential errors during loading
+      debugPrint('Error loading appointments: $e');
+    }
+  }
+
   // Get incomplete tasks
   List<Task> _getIncompleteTasks() {
     if (widget.tasks == null) return [];
-    
+
     // Return only incomplete tasks
     return widget.tasks!.where((task) => !task.completed).toList();
   }
-  
+
   // Show the task selection dialog when a calendar cell is double-tapped
   void _showTaskSelectionDialog(DateTime selectedDateTime) {
     if (widget.tasks == null || widget.tasks!.isEmpty) {
@@ -58,7 +123,7 @@ class _CalendarPageState extends State<CalendarPage> {
       );
       return;
     }
-    
+
     showDialog(
       context: context,
       builder: (context) => TodoSelectionDialog(
@@ -70,7 +135,7 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
     );
   }
-  
+
   // Add a task to the calendar at the specified time
   void _addTaskToCalendar(Task task, DateTime startTime) {
     if (task.duration == null) {
@@ -82,9 +147,9 @@ class _CalendarPageState extends State<CalendarPage> {
       );
       return;
     }
-    
+
     final endTime = startTime.add(task.duration!);
-    
+
     setState(() {
       _appointments.add(
         Appointment(
@@ -97,7 +162,10 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       );
     });
-    
+
+    // Save appointments after adding a new one
+    _saveAppointments();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Added "${task.name}" to calendar'),
@@ -105,7 +173,73 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
     );
   }
-  
+
+  // Remove appointment from calendar
+  void _removeAppointment(Appointment appointment) {
+    setState(() {
+      _appointments.remove(appointment);
+    });
+
+    // Save appointments after removing one
+    _saveAppointments();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Removed appointment from calendar'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // Show options when an appointment is tapped
+  void _showAppointmentOptions(Appointment appointment) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.backgroundColor,
+        title: Text(
+          appointment.subject,
+          style: TextStyle(color: AppTheme.textColor, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Start: ${DateFormat('MMM d, yyyy - HH:mm').format(appointment.startTime)}',
+              style: TextStyle(color: AppTheme.textColor),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'End: ${DateFormat('MMM d, yyyy - HH:mm').format(appointment.endTime)}',
+              style: TextStyle(color: AppTheme.textColor),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Duration: ${appointment.endTime.difference(appointment.startTime).inHours}h ${appointment.endTime.difference(appointment.startTime).inMinutes % 60}m',
+              style: TextStyle(color: AppTheme.textColor),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: Text('Remove', style: TextStyle(color: Colors.red)),
+            onPressed: () {
+              _removeAppointment(appointment);
+              Navigator.pop(context);
+            },
+          ),
+          TextButton(
+            child: Text('Close', style: TextStyle(color: AppTheme.accentColor)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   // Check if this is a double tap
   bool _isDoubleTap(DateTime currentTapTime, DateTime? cellDate) {
     if (_lastTapTime == null || _lastTapPosition == null || cellDate == null) {
@@ -113,19 +247,19 @@ class _CalendarPageState extends State<CalendarPage> {
       _lastTapPosition = cellDate;
       return false;
     }
-    
+
     // Check if the time between taps is less than 300ms (standard double-tap time)
     // and that the tapped position (date+time) is the same
     final bool isDoubleTap = currentTapTime.difference(_lastTapTime!).inMilliseconds < 300 &&
         _isSameTimeSlot(cellDate, _lastTapPosition!);
-    
+
     // Reset tracking for next tap sequence
     _lastTapTime = null;
     _lastTapPosition = null;
-    
+
     return isDoubleTap;
   }
-  
+
   // Check if two dates are in the same time slot (same day, hour, and 15-min block)
   bool _isSameTimeSlot(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
@@ -138,7 +272,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     final List<Task> incompleteTasks = _getIncompleteTasks();
-    
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -170,12 +304,12 @@ class _CalendarPageState extends State<CalendarPage> {
               firstDayOfWeek: 1, // Monday
               dataSource: _AppointmentDataSource(_appointments),
               onTap: (CalendarTapDetails details) {
-                if (details.targetElement == CalendarElement.calendarCell && 
+                if (details.targetElement == CalendarElement.calendarCell &&
                     details.date != null) {
                   setState(() {
                     _selectedDate = details.date!;
                   });
-                  
+
                   // Check if this is a double tap
                   final now = DateTime.now();
                   if (_isDoubleTap(now, details.date)) {
@@ -186,6 +320,11 @@ class _CalendarPageState extends State<CalendarPage> {
                     _lastTapTime = now;
                     _lastTapPosition = details.date;
                   }
+                } else if (details.targetElement == CalendarElement.appointment &&
+                    details.appointments != null &&
+                    details.appointments!.isNotEmpty) {
+                  // When an appointment is tapped, show options
+                  _showAppointmentOptions(details.appointments!.first);
                 }
               },
               timeSlotViewSettings: const TimeSlotViewSettings(
@@ -199,7 +338,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 textStyle: const TextStyle(
                   color: AppTheme.textColor,
                   fontSize: 20,
-                  fontWeight: FontWeight.bold
+                  fontWeight: FontWeight.bold,
                 ),
                 backgroundColor: AppTheme.primaryColor.withOpacity(0.7),
               ),
@@ -211,7 +350,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 dateTextStyle: TextStyle(
                   color: AppTheme.textColor,
                   fontSize: 14,
-                  fontWeight: FontWeight.bold
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               cellBorderColor: Colors.grey.shade700,
@@ -226,13 +365,13 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
             ),
           ),
-          
+
           // Divider
           Container(
             height: 2,
             color: AppTheme.dividerColor,
           ),
-          
+
           // Task grid section (remaining space)
           Expanded(
             child: Container(
@@ -265,7 +404,7 @@ class _CalendarPageState extends State<CalendarPage> {
                             itemCount: incompleteTasks.length,
                             itemBuilder: (context, index) {
                               final task = incompleteTasks[index];
-                              
+
                               return Card(
                                 color: Colors.grey.shade800,
                                 margin: EdgeInsets.zero,
@@ -277,13 +416,13 @@ class _CalendarPageState extends State<CalendarPage> {
                                     // Show dialog to select time to add to calendar
                                     final now = DateTime.now();
                                     final defaultTime = DateTime(
-                                      now.year, 
-                                      now.month, 
-                                      now.day, 
-                                      now.hour, 
-                                      (now.minute ~/ 15) * 15 // Round to nearest 15 minutes
+                                      now.year,
+                                      now.month,
+                                      now.day,
+                                      now.hour,
+                                      (now.minute ~/ 15) * 15, // Round to nearest 15 minutes
                                     );
-                                    
+
                                     if (task.duration == null) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
