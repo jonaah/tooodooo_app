@@ -102,7 +102,7 @@ class ToDoTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Make the checkbox more prominent
+                // Circular checkbox design, consistent with the today_tasks_page
                 GestureDetector(
                   onTap: () {
                     onChanged!(!taskCompleted);
@@ -117,7 +117,7 @@ class ToDoTile extends StatelessWidget {
                         color: AppTheme.getTextColorForPriority(priorityInt).withOpacity(0.8),
                         width: 2,
                       ),
-                      borderRadius: BorderRadius.circular(4),
+                      shape: BoxShape.circle,
                     ),
                     child: taskCompleted
                         ? Icon(

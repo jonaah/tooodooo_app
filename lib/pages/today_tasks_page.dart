@@ -1,10 +1,12 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tooodooo_app/pages/home_page.dart';
-import 'package:tooodooo_app/util/app_theme.dart';
+import 'package:tooodooo_app/calendar/calendar_appointment.dart';
 import 'package:tooodooo_app/pages/calendar_page.dart';
+import 'package:tooodooo_app/pages/home_page.dart';
+import 'package:tooodooo_app/today/task_card.dart';
+import 'package:tooodooo_app/today/task_section_header.dart';
+import 'package:tooodooo_app/today/today_tasks_service.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class TodayTasksPage extends StatefulWidget {
   final List<Task>? tasks;
@@ -21,12 +23,14 @@ class TodayTasksPage extends StatefulWidget {
 }
 
 class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObserver {
-  // List of appointments from calendar
+  // Service for managing tasks
+  final TodayTasksService _tasksService = TodayTasksService();
+  
+  // List of appointments 
   List<CalendarAppointment> _appointments = [];
-  List<CalendarAppointment> _completedAppointments = [];
-  List<CalendarAppointment> _currentAppointments = [];
-  List<CalendarAppointment> _upcomingAppointments = [];
-  List<CalendarAppointment> _pendingAppointments = [];
+  
+  // Current date to display tasks for
+  DateTime _selectedDate = DateTime.now();
   DateTime _today = DateTime.now();
   
   @override
@@ -34,11 +38,72 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadAppointments();
+    
+    // Initialize today with just the date part (no time)
     _today = DateTime(
       DateTime.now().year,
       DateTime.now().month,
       DateTime.now().day,
     );
+    
+    // Initialize selected date to today
+    _selectedDate = _today;
+  }
+  
+  // Navigate to the previous day
+  void _goToPreviousDay() {
+    setState(() {
+      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+    });
+  }
+  
+  // Navigate to the next day
+  void _goToNextDay() {
+    setState(() {
+      _selectedDate = _selectedDate.add(const Duration(days: 1));
+    });
+  }
+  
+  // Reset to today
+  void _goToToday() {
+    setState(() {
+      _selectedDate = _today;
+    });
+  }
+  
+  // Show month picker dialog
+  void _showMonthCalendarPicker() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: AppTheme.accentColor,
+              onPrimary: Colors.white,
+              surface: AppTheme.primaryColor,
+              onSurface: AppTheme.textColor,
+            ),
+            dialogBackgroundColor: AppTheme.backgroundColor,
+          ),
+          child: DatePickerDialog(
+            initialDate: _selectedDate,
+            firstDate: DateTime(2020),
+            lastDate: DateTime(2030),
+            initialEntryMode: DatePickerEntryMode.calendar,
+            helpText: "SELECT A DATE",
+            confirmText: "SELECT",
+            cancelText: "CANCEL",
+          ),
+        );
+      },
+    ).then((selectedDate) {
+      if (selectedDate != null) {
+        setState(() {
+          _selectedDate = selectedDate;
+        });
+      }
+    });
   }
   
   @override
@@ -57,54 +122,19 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
 
   // Load appointments from SharedPreferences
   Future<void> _loadAppointments() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? appointmentsJson = prefs.getString('calendar_appointments');
-      
-      if (appointmentsJson != null && appointmentsJson.isNotEmpty) {
-        final List<dynamic> decodedList = jsonDecode(appointmentsJson);
-        
-        setState(() {
-          _appointments = decodedList.map((item) => CalendarAppointment.fromJson(item)).toList();
-        });
-      } else {
-        setState(() {
-          _appointments = [];
-        });
-      }
-    } catch (e) {
-      debugPrint('Error loading appointments: $e');
-    }
+    final loadedAppointments = await _tasksService.loadAppointments();
+    setState(() {
+      _appointments = loadedAppointments;
+    });
   }
   
-  // Save appointments back to SharedPreferences
-  Future<void> _saveAppointments() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<Map<String, dynamic>> serializedAppointments = 
-          _appointments.map((appointment) => appointment.toJson()).toList();
-      
-      await prefs.setString('calendar_appointments', jsonEncode(serializedAppointments));
-      
-      // Notify any listeners that appointments changed
-      if (widget.onTaskRemoved != null) {
-        widget.onTaskRemoved!('refresh');
-      }
-    } catch (e) {
-      debugPrint('Error saving appointments: $e');
-    }
-  }
-
-  // Save appointments to SharedPreferences
-  Future<void> _saveAppointmentsToPrefs() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final List<Map<String, dynamic>> serializedAppointments = 
-          _appointments.map((appointment) => appointment.toJson()).toList();
-      
-      await prefs.setString('calendar_appointments', jsonEncode(serializedAppointments));
-    } catch (e) {
-      debugPrint('Error saving appointments: $e');
+  // Save appointments and notify listeners
+  Future<void> _saveAppointmentsAndNotify() async {
+    await _tasksService.saveAppointments(_appointments);
+    
+    // Notify any listeners that appointments changed
+    if (widget.onTaskRemoved != null) {
+      widget.onTaskRemoved!('refresh');
     }
   }
 
@@ -113,53 +143,27 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
     _loadAppointments();
   }
 
-  // Get scheduled tasks for today
-  List<CalendarAppointment> get _todayAppointments {
-    return _appointments.where((appointment) {
-      final appointmentDate = DateTime(
-        appointment.startTime.year,
-        appointment.startTime.month,
-        appointment.startTime.day,
-      );
-      
-      return appointmentDate.isAtSameMomentAs(_today);
-    }).toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
-  }
-  
   // Mark an appointment as completed
   void _markAppointmentAsCompleted(CalendarAppointment appointment) {
     setState(() {
-      // Update the appointment in the main list to mark as completed
+      // Find the appointment in the list
       final index = _appointments.indexWhere((a) => 
         a.subject == appointment.subject && 
         a.startTime.isAtSameMomentAs(appointment.startTime) &&
         a.endTime.isAtSameMomentAs(appointment.endTime));
       
       if (index != -1) {
-        // Create a new appointment with isCompleted set to true
-        final updatedAppointment = CalendarAppointment(
-          subject: appointment.subject,
-          startTime: appointment.startTime,
-          endTime: appointment.endTime,
-          color: appointment.color,
-          notes: appointment.notes,
-          isAllDay: appointment.isAllDay,
-          isCompleted: true,
-        );
-        
-        // Replace the appointment in the list
-        _appointments[index] = updatedAppointment;
+        // Replace with completed version using copyWith
+        _appointments[index] = _appointments[index].copyWith(isCompleted: true);
       }
     });
     
-    // Save the updated appointments list to SharedPreferences
-    _saveAppointments();
+    _saveAppointmentsAndNotify();
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Task marked as completed'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(TodayTasksService.msgTaskCompleted),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -167,36 +171,24 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
   // Mark an appointment as incomplete
   void _markAppointmentAsIncomplete(CalendarAppointment appointment) {
     setState(() {
-      // Update the appointment in the main list to mark as incomplete
+      // Find the appointment in the list
       final index = _appointments.indexWhere((a) => 
         a.subject == appointment.subject && 
         a.startTime.isAtSameMomentAs(appointment.startTime) &&
         a.endTime.isAtSameMomentAs(appointment.endTime));
       
       if (index != -1) {
-        // Create a new appointment with isCompleted set to false
-        final updatedAppointment = CalendarAppointment(
-          subject: appointment.subject,
-          startTime: appointment.startTime,
-          endTime: appointment.endTime,
-          color: appointment.color,
-          notes: appointment.notes,
-          isAllDay: appointment.isAllDay,
-          isCompleted: false,
-        );
-        
-        // Replace the appointment in the list
-        _appointments[index] = updatedAppointment;
+        // Replace with incomplete version using copyWith
+        _appointments[index] = _appointments[index].copyWith(isCompleted: false);
       }
     });
     
-    // Save the updated appointments list to SharedPreferences
-    _saveAppointments();
+    _saveAppointmentsAndNotify();
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Task marked as incomplete'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(TodayTasksService.msgTaskIncomplete),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -210,58 +202,50 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         a.endTime.isAtSameMomentAs(appointment.endTime));
     });
     
-    _saveAppointments();
+    _saveAppointmentsAndNotify();
     
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Task removed from calendar'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(TodayTasksService.msgTaskRemoved),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  // Format time as "9:30 AM"
-  String _formatTime(DateTime time) {
-    return DateFormat('h:mm a').format(time);
-  }
-  
-  // Check if a time is now or in the future
-  bool _isCurrentOrFuture(DateTime time) {
-    return DateTime.now().isBefore(time) || 
-        (time.hour == DateTime.now().hour && time.minute >= DateTime.now().minute);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final todayAppointments = _todayAppointments;
+    // Get appointments for the selected date
+    final selectedDateAppointments = _tasksService.getAppointmentsForDate(
+      _appointments, 
+      _selectedDate
+    );
+    
     final currentTime = DateTime.now();
-    final formattedDate = DateFormat('EEEE, MMMM d').format(_today);
+    final formattedDate = DateFormat('EEEE, MMMM d').format(_selectedDate);
     
-    // Split tasks into different categories
-    final completedTasks = todayAppointments.where(
-      (task) => task.isCompleted
-    ).toList();
+    // Check if the selected date is today
+    final isToday = _selectedDate.year == _today.year && 
+                     _selectedDate.month == _today.month && 
+                     _selectedDate.day == _today.day;
     
-    final pendingTasks = todayAppointments.where(
-      (task) => task.endTime.isBefore(currentTime) && !task.isCompleted
-    ).toList();
+    // Categorize tasks
+    final categorizedTasks = _tasksService.categorizeAppointments(
+      selectedDateAppointments, 
+      currentTime, 
+      isToday
+    );
     
-    final currentTasks = todayAppointments.where(
-      (task) => !task.endTime.isBefore(currentTime) && 
-                !task.startTime.isAfter(currentTime) &&
-                !task.isCompleted
-    ).toList();
-    
-    final upcomingTasks = todayAppointments.where(
-      (task) => task.startTime.isAfter(currentTime) && !task.isCompleted
-    ).toList();
+    final completedTasks = categorizedTasks['completed'] ?? [];
+    final pendingTasks = categorizedTasks['pending'] ?? [];
+    final currentTasks = categorizedTasks['current'] ?? [];
+    final upcomingTasks = categorizedTasks['upcoming'] ?? [];
     
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Column(
           children: [
-            const Text('TODAY', style: AppTheme.appBarTitle),
+            Text(_tasksService.getDateTitle(_selectedDate), style: AppTheme.appBarTitle),
             Text(
               formattedDate,
               style: TextStyle(
@@ -276,134 +260,253 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAppointments,
-            tooltip: 'Refresh tasks',
+            icon: const Icon(Icons.today),
+            onPressed: _goToToday,
+            tooltip: 'Go to today',
+          ),
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: _showMonthCalendarPicker,
+            tooltip: 'Select date',
           ),
         ],
       ),
-      body: todayAppointments.isEmpty
-          ? _buildEmptyView()
-          : RefreshIndicator(
-              onRefresh: _loadAppointments,
-              color: AppTheme.accentColor,
-              child: ListView(
-                padding: const EdgeInsets.all(AppTheme.defaultPadding),
-                children: [
-                  // Current time indicator
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12, 
-                      horizontal: AppTheme.defaultPadding
+      body: Column(
+        children: [
+          // Day navigation header
+          Container(
+            color: AppTheme.primaryColor.withOpacity(0.7),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, color: AppTheme.textColor),
+                  onPressed: _goToPreviousDay,
+                  tooltip: 'Previous day',
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isToday ? AppTheme.accentColor : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isToday ? 'Today' : DateFormat('MMM d').format(_selectedDate),
+                    style: const TextStyle(
+                      color: AppTheme.textColor,
+                      fontWeight: FontWeight.bold,
                     ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accentColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-                    ),
-                    child: Row(
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right, color: AppTheme.textColor),
+                  onPressed: _goToNextDay,
+                  tooltip: 'Next day',
+                ),
+              ],
+            ),
+          ),
+          
+          // Tasks list
+          Expanded(
+            child: selectedDateAppointments.isEmpty
+                ? _buildEmptyView(isPastDate: _selectedDate.isBefore(_today))
+                : RefreshIndicator(
+                    onRefresh: _loadAppointments,
+                    color: AppTheme.accentColor,
+                    child: ListView(
+                      padding: const EdgeInsets.all(AppTheme.defaultPadding),
                       children: [
-                        const Icon(
-                          Icons.access_time_rounded,
-                          color: AppTheme.accentColor,
-                        ),
-                        const SizedBox(width: 8),
+                        // Current time indicator (only for today)
+                        if (isToday)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12, 
+                              horizontal: AppTheme.defaultPadding
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time_rounded,
+                                  color: AppTheme.accentColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Current Time: ${DateFormat('h:mm a').format(currentTime)}',
+                                  style: const TextStyle(
+                                    color: AppTheme.textColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        
+                        // Current tasks (if any and today)
+                        if (currentTasks.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          TaskSectionHeader(
+                            title: TodayTasksService.sectionHappeningNow,
+                            icon: Icons.play_circle_filled,
+                            color: Colors.green,
+                          ),
+                          ...currentTasks.map((task) => TaskCard(
+                            appointment: task,
+                            isCurrentTask: true,
+                            onTaskCompleted: _markAppointmentAsCompleted,
+                            onTaskIncomplete: _markAppointmentAsIncomplete,
+                            onTaskRemoved: _removeAppointment,
+                          )),
+                        ],
+                        
+                        // Pending tasks (past but not completed)
+                        if (pendingTasks.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          TaskSectionHeader(
+                            title: TodayTasksService.sectionPending,
+                            icon: Icons.pending_actions,
+                            color: Colors.orange,
+                          ),
+                          ...pendingTasks.map((task) => TaskCard(
+                            appointment: task,
+                            isPendingTask: true,
+                            onTaskCompleted: _markAppointmentAsCompleted,
+                            onTaskIncomplete: _markAppointmentAsIncomplete,
+                            onTaskRemoved: _removeAppointment,
+                          )),
+                        ],
+                        
+                        // Upcoming tasks (if any)
+                        if (upcomingTasks.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          TaskSectionHeader(
+                            title: isToday 
+                              ? TodayTasksService.sectionUpcoming 
+                              : TodayTasksService.sectionScheduled,
+                            icon: isToday ? Icons.upcoming : Icons.event,
+                            color: AppTheme.accentColor,
+                          ),
+                          ...upcomingTasks.map((task) => TaskCard(
+                            appointment: task,
+                            isUpcomingTask: true,
+                            showRemainingTime: isToday,
+                            onTaskCompleted: _markAppointmentAsCompleted,
+                            onTaskIncomplete: _markAppointmentAsIncomplete,
+                            onTaskRemoved: _removeAppointment,
+                          )),
+                        ],
+                        
+                        // Completed tasks (if any)
+                        if (completedTasks.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          TaskSectionHeader(
+                            title: TodayTasksService.sectionCompleted,
+                            icon: Icons.check_circle,
+                            color: Colors.grey,
+                          ),
+                          ...completedTasks.map((task) => TaskCard(
+                            appointment: task,
+                            isCompletedTask: true,
+                            onTaskCompleted: _markAppointmentAsCompleted,
+                            onTaskIncomplete: _markAppointmentAsIncomplete,
+                            onTaskRemoved: _removeAppointment,
+                          )),
+                        ],
+                        
+                        // Add extra space at the bottom
+                        const SizedBox(height: 60),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+      // Bottom navigation to quickly switch between days
+      bottomNavigationBar: BottomAppBar(
+        color: AppTheme.primaryColor,
+        elevation: 8,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(5, (index) {
+              // Generate buttons for -2, -1, 0 (today), +1, +2 days
+              final dayOffset = index - 2;
+              final date = _today.add(Duration(days: dayOffset));
+              final isSelected = date.year == _selectedDate.year && 
+                              date.month == _selectedDate.month && 
+                              date.day == _selectedDate.day;
+              
+              String label;
+              if (dayOffset == -2) label = 'Day -2';
+              else if (dayOffset == -1) label = 'Yesterday';
+              else if (dayOffset == 0) label = 'Today';
+              else if (dayOffset == 1) label = 'Tomorrow';
+              else label = 'Day +2';
+              
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedDate = date;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    decoration: BoxDecoration(
+                      border: isSelected ? const Border(
+                        top: BorderSide(color: AppTheme.accentColor, width: 3)
+                      ) : null,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          'Current Time: ${DateFormat('h:mm a').format(currentTime)}',
-                          style: const TextStyle(
-                            color: AppTheme.textColor,
-                            fontWeight: FontWeight.bold,
+                          DateFormat('E').format(date),
+                          style: TextStyle(
+                            color: isSelected ? AppTheme.accentColor : AppTheme.textColor,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        Text(
+                          DateFormat('d').format(date),
+                          style: TextStyle(
+                            color: isSelected ? AppTheme.accentColor : AppTheme.textColor,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  
-                  // Current tasks (if any)
-                  if (currentTasks.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('HAPPENING NOW', Icons.play_circle_filled, Colors.green),
-                    ...currentTasks.map((task) => _buildTaskCard(
-                      task, 
-                      isCurrentTask: true,
-                    )),
-                  ],
-                  
-                  // Pending tasks (past but not completed)
-                  if (pendingTasks.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('PENDING', Icons.pending_actions, Colors.orange),
-                    ...pendingTasks.map((task) => _buildTaskCard(
-                      task,
-                      isPendingTask: true,
-                    )),
-                  ],
-                  
-                  // Upcoming tasks (if any)
-                  if (upcomingTasks.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('UPCOMING', Icons.upcoming, AppTheme.accentColor),
-                    ...upcomingTasks.map((task) => _buildTaskCard(
-                      task,
-                      isUpcomingTask: true,
-                    )),
-                  ],
-                  
-                  // Completed tasks (if any)
-                  if (completedTasks.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('COMPLETED', Icons.check_circle, Colors.grey),
-                    ...completedTasks.map((task) => _buildTaskCard(
-                      task,
-                      isCompletedTask: true,
-                    )),
-                  ],
-                  
-                  // Add extra space at the bottom
-                  const SizedBox(height: 60),
-                ],
-              ),
-            ),
-    );
-  }
-  
-  Widget _buildSectionHeader(String title, IconData icon, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 18,
+                ),
+              );
+            }),
           ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
   
-  Widget _buildEmptyView() {
+  Widget _buildEmptyView({bool isPastDate = false}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.event_available,
+            isPastDate ? Icons.history : Icons.event_available,
             size: 64,
             color: AppTheme.textColor.withOpacity(0.5),
           ),
           const SizedBox(height: 16),
           Text(
-            'No tasks scheduled for today',
+            isPastDate
+                ? TodayTasksService.msgNoTasksScheduledPast
+                : TodayTasksService.msgNoTasksScheduled,
             style: TextStyle(
               color: AppTheme.textColor.withOpacity(0.7),
               fontSize: 18,
@@ -411,7 +514,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
           ),
           const SizedBox(height: 8),
           Text(
-            'Double-tap on the calendar to add tasks',
+            TodayTasksService.msgDoubleTapToAdd,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppTheme.textColor.withOpacity(0.5),
@@ -439,267 +542,5 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         ],
       ),
     );
-  }
-  
-  Widget _buildTaskCard(CalendarAppointment appointment, {
-    bool isCurrentTask = false,
-    bool isPastTask = false,
-    bool isPendingTask = false,
-    bool isUpcomingTask = false,
-    bool isCompletedTask = false,
-  }) {
-    // Calculate progress for current tasks
-    double? progress;
-    if (isCurrentTask) {
-      final totalDuration = appointment.endTime.difference(appointment.startTime).inMinutes;
-      final elapsedDuration = DateTime.now().difference(appointment.startTime).inMinutes;
-      progress = elapsedDuration / totalDuration;
-      progress = progress.clamp(0.0, 1.0); // Ensure progress is between 0 and 1
-    }
-    
-    // Get duration text
-    final durationMinutes = appointment.endTime.difference(appointment.startTime).inMinutes;
-    final hours = durationMinutes ~/ 60;
-    final minutes = durationMinutes % 60;
-    final durationText = hours > 0 
-        ? '${hours}h ${minutes > 0 ? '${minutes}m' : ''}'
-        : '${minutes}m';
-    
-    // Get time range text (e.g., "9:30 AM - 10:30 AM")
-    final timeRangeText = '${_formatTime(appointment.startTime)} - ${_formatTime(appointment.endTime)}';
-    
-    // Get the remaining time for upcoming tasks
-    String? remainingTimeText;
-    if (isUpcomingTask) {
-      final remainingMinutes = appointment.startTime.difference(DateTime.now()).inMinutes;
-      if (remainingMinutes < 60) {
-        remainingTimeText = 'In $remainingMinutes minute${remainingMinutes == 1 ? '' : 's'}';
-      } else if (remainingMinutes < 24 * 60) {
-        final hours = remainingMinutes ~/ 60;
-        final minutes = remainingMinutes % 60;
-        remainingTimeText = 'In $hours hour${hours == 1 ? '' : 's'}${minutes > 0 ? ' $minutes min' : ''}';
-      }
-    }
-    
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: InkWell(
-        onTap: () {
-          // Toggle completion status on task card tap
-          if (isCompletedTask) {
-            _markAppointmentAsIncomplete(appointment);
-          } else {
-            _markAppointmentAsCompleted(appointment);
-          }
-        },
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-        splashColor: isCompletedTask ? Colors.grey.shade400.withOpacity(0.3) : Colors.white.withOpacity(0.3),
-        highlightColor: isCompletedTask ? Colors.grey.shade400.withOpacity(0.2) : Colors.white.withOpacity(0.2),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: isCompletedTask 
-                ? Colors.grey.shade800.withOpacity(0.5)
-                : isPendingTask
-                    ? Colors.orange.shade800.withOpacity(0.5)
-                    : Color(appointment.color),
-            borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-            border: isCompletedTask || isPendingTask
-                ? Border.all(color: Colors.grey.shade700, width: 1)
-                : null,
-            boxShadow: isCompletedTask || isPendingTask 
-                ? null 
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppTheme.smallPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Task completion checkbox - positioned on the left
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: isCompletedTask ? Colors.grey.shade500 : Colors.white70,
-                          width: 2.0,
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                        color: isCompletedTask ? Colors.grey.shade600 : Colors.transparent,
-                      ),
-                      child: isCompletedTask 
-                          ? const Icon(Icons.check, size: 16, color: Colors.white) 
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    if (appointment.notes != null && appointment.notes!.isNotEmpty)
-                      Icon(
-                        IconData(
-                          int.tryParse(appointment.notes!) ?? 0xe158, // Default to event icon
-                          fontFamily: 'MaterialIcons',
-                        ),
-                        color: isCompletedTask || isPendingTask ? Colors.grey : Colors.white,
-                        size: 18,
-                      )
-                    else
-                      Icon(
-                        Icons.task_alt,
-                        color: isCompletedTask || isPendingTask ? Colors.grey : Colors.white,
-                        size: 18,
-                      ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        appointment.subject,
-                        style: TextStyle(
-                          color: isCompletedTask || isPendingTask ? Colors.grey.shade400 : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          decoration: isCompletedTask ? TextDecoration.lineThrough : null,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: isCompletedTask || isPendingTask ? Colors.grey.shade700 : Colors.black26,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        durationText,
-                        style: TextStyle(
-                          color: isCompletedTask || isPendingTask ? Colors.grey.shade400 : Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12), // Increased spacing to separate from delete button
-                    GestureDetector(
-                      onTap: () => _removeAppointment(appointment),
-                      child: Padding(
-                        padding: const EdgeInsets.all(6.0),
-                        child: Icon(
-                          Icons.delete_outline,
-                          color: isCompletedTask || isPendingTask ? Colors.grey.shade500 : Colors.white70,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.schedule,
-                      color: isCompletedTask || isPendingTask ? Colors.grey.shade500 : Colors.white70,
-                      size: 14, 
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      timeRangeText,
-                      style: TextStyle(
-                        color: isCompletedTask || isPendingTask ? Colors.grey.shade500 : Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (remainingTimeText != null) ...[
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          remainingTimeText,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                
-                // Progress indicator for current tasks
-                if (isCurrentTask) ...[
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: Colors.white24,
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'In progress (${(progress! * 100).toInt()}% complete)',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Model for calendar appointments
-class CalendarAppointment {
-  final String subject;
-  final DateTime startTime;
-  final DateTime endTime;
-  final int color;
-  final String? notes;
-  final bool isAllDay;
-  final bool isCompleted;
-  
-  CalendarAppointment({
-    required this.subject,
-    required this.startTime,
-    required this.endTime,
-    required this.color,
-    this.notes,
-    this.isAllDay = false,
-    this.isCompleted = false,
-  });
-  
-  factory CalendarAppointment.fromJson(Map<String, dynamic> json) {
-    return CalendarAppointment(
-      subject: json['subject'],
-      startTime: DateTime.fromMillisecondsSinceEpoch(json['startTime']),
-      endTime: DateTime.fromMillisecondsSinceEpoch(json['endTime']),
-      color: json['color'],
-      notes: json['notes'],
-      isAllDay: json['isAllDay'] ?? false,
-      isCompleted: json['isCompleted'] ?? false,
-    );
-  }
-  
-  Map<String, dynamic> toJson() {
-    return {
-      'subject': subject,
-      'startTime': startTime.millisecondsSinceEpoch,
-      'endTime': endTime.millisecondsSinceEpoch,
-      'color': color,
-      'notes': notes,
-      'isAllDay': isAllDay,
-      'isCompleted': isCompleted,
-    };
   }
 }
