@@ -49,26 +49,22 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
     _endTime = widget.appointment.endTime;
     _color = widget.appointment.color;
     _isCompleted = widget.appointment.isCompleted;
-    
-    // Calculate duration from start and end time
+
     final duration = _endTime.difference(_startTime);
     _hours = duration.inHours;
     _minutes = duration.inMinutes % 60;
-    
-    // Extract priority from color
+
     for (int i = 1; i <= 5; i++) {
       if (_color.value == AppTheme.getCalendarTaskColor(i).value) {
         _priority = i;
         break;
       }
     }
-    
-    // Extract icon if it exists
+
     if (widget.appointment.notes != null) {
       _selectedIcon = AppIcons.getIcon(widget.appointment.notes!);
     }
-    
-    // Schedule setting the slider value after the widget is built
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _sliderKey.currentState?.setSliderValue(_priority.toDouble());
     });
@@ -79,14 +75,14 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
     _subjectController.dispose();
     super.dispose();
   }
-  
+
   void _handleIconTap(IconData icon) {
     setState(() {
       _selectedIcon = icon;
     });
     IconManager.addToRecentIcons(icon);
   }
-  
+
   void _openEmojiPicker() async {
     await Navigator.push(
       context,
@@ -99,11 +95,10 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
       ),
     );
   }
-  
+
   Future<void> _openDateTimePicker(bool isStartTime) async {
     final DateTime initialDateTime = isStartTime ? _startTime : _endTime;
-    
-    // First, select a date
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDateTime,
@@ -124,9 +119,8 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
         );
       },
     );
-    
+
     if (pickedDate != null) {
-      // Then, select a time
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(initialDateTime),
@@ -145,9 +139,8 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
           );
         },
       );
-      
+
       if (pickedTime != null) {
-        // Combine date and time
         final DateTime newDateTime = DateTime(
           pickedDate.year,
           pickedDate.month,
@@ -155,23 +148,20 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
           pickedTime.hour,
           pickedTime.minute,
         );
-        
+
         setState(() {
           if (isStartTime) {
             _startTime = newDateTime;
-            // Ensure end time is not before start time
             if (_endTime.isBefore(_startTime)) {
               _endTime = _startTime.add(const Duration(minutes: 30));
             }
           } else {
             _endTime = newDateTime;
-            // Ensure start time is not after end time
             if (_startTime.isAfter(_endTime)) {
               _startTime = _endTime.subtract(const Duration(minutes: 30));
             }
           }
-          
-          // Update hours and minutes based on the new duration
+
           final duration = _endTime.difference(_startTime);
           _hours = duration.inHours;
           _minutes = duration.inMinutes % 60;
@@ -179,7 +169,7 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
       }
     }
   }
-  
+
   Future<void> _openDurationPicker() async {
     final result = await showDurationPicker(
       context: context,
@@ -191,18 +181,16 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
       setState(() {
         _hours = result['hours'] ?? 0;
         _minutes = result['minutes'] ?? 0;
-        
-        // Update end time based on new duration
+
         _endTime = _startTime.add(Duration(hours: _hours, minutes: _minutes));
       });
     }
   }
-  
+
   void _saveChanges() {
-    // Get the current priority value from the slider
     final double priorityValue = _sliderKey.currentState?.getSliderValue() ?? _priority.toDouble();
     final int newPriority = priorityValue.round();
-    
+
     final updatedAppointment = widget.appointment.copyWith(
       subject: _subjectController.text,
       startTime: _startTime,
@@ -211,12 +199,20 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
       notes: _selectedIcon != null ? AppIcons.getName(_selectedIcon!) : widget.appointment.notes,
       isCompleted: _isCompleted,
     );
-    
+
     widget.onSave(updatedAppointment);
   }
 
   String formattedDateTime(DateTime dateTime) {
     return DateFormat('dd.MM.yyyy - HH:mm').format(dateTime);
+  }
+
+  String formattedDate(DateTime dateTime) {
+    return DateFormat('dd.MM.yyyy').format(dateTime);
+  }
+
+  String formattedTime(DateTime dateTime) {
+    return DateFormat('HH:mm').format(dateTime);
   }
 
   String formattedDuration() {
@@ -238,7 +234,7 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
         style: TextStyle(
           fontWeight: FontWeight.bold,
           color: AppTheme.textColor,
-          fontSize: 22,
+          fontSize: AppTheme.dialogTitle.fontSize,
         ),
       ),
       shape: RoundedRectangleBorder(
@@ -246,13 +242,12 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
       ),
       content: SizedBox(
         width: 300,
-        height: 500,
+        height: 550, // Increased height for the dialog
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              // Task completed checkbox
               Row(
                 children: [
                   Checkbox(
@@ -274,8 +269,6 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                   ),
                 ],
               ),
-              
-              // Task input field
               Padding(
                 padding: EdgeInsets.only(top: AppTheme.smallPadding),
                 child: TextField(
@@ -301,8 +294,6 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                   ),
                 ),
               ),
-              
-              // Priority section
               Padding(
                 padding: EdgeInsets.only(top: AppTheme.smallPadding),
                 child: Text(
@@ -315,143 +306,131 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                 ),
               ),
               SliderElement(key: _sliderKey),
-              
-              // Date & Time section
               Padding(
                 padding: EdgeInsets.only(top: AppTheme.smallPadding),
-                child: Text(
-                  "Date & Time",
-                  style: TextStyle(
-                    color: AppTheme.textColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Date & Time",
+                        style: TextStyle(
+                          color: AppTheme.textColor,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: _openDurationPicker,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: AppTheme.smallPadding, vertical: AppTheme.smallPadding / 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.timer, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                            SizedBox(width: 4),
+                            Text(
+                              formattedDuration(),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.textColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              
-              // Start time selector
               Container(
                 margin: EdgeInsets.only(top: AppTheme.smallPadding),
-                child: InkWell(
-                  onTap: () => _openDateTimePicker(true),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                      border: Border.all(color: AppTheme.accentColor),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
+                padding: EdgeInsets.all(AppTheme.smallPadding),
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                  border: Border.all(color: Colors.grey[600]!),
+                ),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        Icon(Icons.event, size: AppTheme.iconSize, color: AppTheme.accentColor),
-                        SizedBox(width: AppTheme.smallPadding),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Start Time",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.textColor.withOpacity(0.8),
-                                ),
-                              ),
-                              Text(
-                                formattedDateTime(_startTime),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.textColor,
-                                ),
-                              ),
-                            ],
+                        Icon(Icons.play_arrow, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                        SizedBox(width: 4),
+                        Text("Start:", style: TextStyle(color: AppTheme.textColor, fontSize: 14)),
+                        Spacer(),
+                        InkWell(
+                          onTap: () => _openDateTimePicker(true),
+                          child: Chip(
+                            backgroundColor: Colors.grey[700],
+                            label: Text(
+                              formattedDate(_startTime),
+                              style: TextStyle(fontSize: 13, color: AppTheme.textColor),
+                            ),
+                            avatar: Icon(Icons.calendar_today, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        InkWell(
+                          onTap: () => _openDateTimePicker(true),
+                          child: Chip(
+                            backgroundColor: Colors.grey[700],
+                            label: Text(
+                              formattedTime(_startTime),
+                              style: TextStyle(fontSize: 13, color: AppTheme.textColor),
+                            ),
+                            avatar: Icon(Icons.access_time, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            visualDensity: VisualDensity.compact,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ),
-              
-              // End time selector
-              Container(
-                margin: EdgeInsets.only(top: AppTheme.smallPadding),
-                child: InkWell(
-                  onTap: () => _openDateTimePicker(false),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                      border: Border.all(color: AppTheme.accentColor),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
+                    SizedBox(height: AppTheme.smallPadding),
+                    Row(
                       children: [
-                        Icon(Icons.event, size: AppTheme.iconSize, color: AppTheme.accentColor),
-                        SizedBox(width: AppTheme.smallPadding),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "End Time",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.textColor.withOpacity(0.8),
-                                ),
-                              ),
-                              Text(
-                                formattedDateTime(_endTime),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.textColor,
-                                ),
-                              ),
-                            ],
+                        Icon(Icons.stop, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                        SizedBox(width: 4),
+                        Text("End:", style: TextStyle(color: AppTheme.textColor, fontSize: 14)),
+                        Spacer(),
+                        InkWell(
+                          onTap: () => _openDateTimePicker(false),
+                          child: Chip(
+                            backgroundColor: Colors.grey[700],
+                            label: Text(
+                              formattedDate(_endTime),
+                              style: TextStyle(fontSize: 13, color: AppTheme.textColor),
+                            ),
+                            avatar: Icon(Icons.calendar_today, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        InkWell(
+                          onTap: () => _openDateTimePicker(false),
+                          child: Chip(
+                            backgroundColor: Colors.grey[700],
+                            label: Text(
+                              formattedTime(_endTime),
+                              style: TextStyle(fontSize: 13, color: AppTheme.textColor),
+                            ),
+                            avatar: Icon(Icons.access_time, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            visualDensity: VisualDensity.compact,
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
-              
-              // Duration picker
-              Container(
-                margin: EdgeInsets.only(top: AppTheme.smallPadding),
-                child: InkWell(
-                  onTap: _openDurationPicker,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                      border: Border.all(color: AppTheme.accentColor),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.timer, size: AppTheme.iconSize, color: AppTheme.accentColor),
-                        SizedBox(width: AppTheme.smallPadding),
-                        Text(
-                          "Duration: ${formattedDuration()}",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Task icon section
               Padding(
                 padding: EdgeInsets.only(top: AppTheme.defaultPadding, bottom: AppTheme.smallPadding / 2),
                 child: Text(
@@ -463,8 +442,6 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                   ),
                 ),
               ),
-              
-              // First row of icons
               Container(
                 margin: EdgeInsets.only(top: AppTheme.smallPadding / 2),
                 child: Row(
@@ -487,7 +464,7 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                           ],
                         ),
                         child: Icon(
-                          icon, 
+                          icon,
                           color: isSelected ? Colors.white : AppTheme.textColor,
                           size: AppTheme.iconSize,
                         ),
@@ -496,8 +473,6 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                   }).toList(),
                 ),
               ),
-              
-              // Second row of icons (if needed)
               if (hasSecondRow)
                 Container(
                   margin: EdgeInsets.only(top: AppTheme.smallPadding),
@@ -521,7 +496,7 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                             ],
                           ),
                           child: Icon(
-                            icon, 
+                            icon,
                             color: isSelected ? Colors.white : AppTheme.textColor,
                             size: AppTheme.iconSize,
                           ),
@@ -530,60 +505,97 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
                     }).toList(),
                   ),
                 ),
-              
-              // More icons button
-              Padding(
-                padding: EdgeInsets.only(top: AppTheme.smallPadding, bottom: AppTheme.smallPadding / 2),
-                child: TextButton(
-                  onPressed: _openEmojiPicker,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.accentColor,
-                    backgroundColor: Colors.grey[800],
-                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                    ),
-                  ),
-                  child: Text(
-                    "More Icons",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+              InkWell(
+                onTap: _openEmojiPicker,
+                child: Padding(
+                  padding: EdgeInsets.only(top: AppTheme.smallPadding),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, size: AppTheme.smallIconSize, color: AppTheme.accentColor),
+                      SizedBox(width: 4),
+                      Text(
+                        "More Icons",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.accentColor,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              
-              // Buttons row
               Container(
                 margin: EdgeInsets.only(top: AppTheme.defaultPadding),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    MyButton(text: "Save", onPressed: _saveChanges),
-                    MyButton(text: "Cancel", onPressed: widget.onCancel),
+                    // Green Save button
+                    ElevatedButton(
+                      onPressed: _saveChanges,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green[600],
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppTheme.defaultPadding / 2, 
+                          vertical: AppTheme.smallPadding
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check, size: AppTheme.smallIconSize, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text("Save", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    
+                    // Cancel button
+                    ElevatedButton(
+                      onPressed: widget.onCancel,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[700],
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppTheme.defaultPadding / 2, 
+                          vertical: AppTheme.smallPadding
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                        ),
+                      ),
+                      child: Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    
+                    // Delete button
+                    ElevatedButton(
+                      onPressed: widget.onDelete,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[700],
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppTheme.defaultPadding / 2, 
+                          vertical: AppTheme.smallPadding
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.delete_outline, size: AppTheme.smallIconSize, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text("Delete", style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              ),
-              
-              // Delete button
-              Container(
-                margin: EdgeInsets.only(top: AppTheme.smallPadding),
-                child: TextButton(
-                  onPressed: widget.onDelete,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.red[700],
-                    padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                    ),
-                  ),
-                  child: Text(
-                    "Delete Task",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
               ),
             ],
