@@ -515,8 +515,8 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
           timeFormat: 'HH:mm',
           timeInterval: Duration(minutes: 15), // Changed to 15 min for better precision
           timeIntervalHeight: 40,
-          startHour: 6,
-          endHour: 22,
+          startHour: 0,
+          endHour: 24,
         ),
         headerStyle: CalendarHeaderStyle(
           textStyle: const TextStyle(
