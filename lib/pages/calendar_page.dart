@@ -5,8 +5,10 @@ import 'package:tooodooo_app/calendar/appointment_data_source.dart';
 import 'package:tooodooo_app/calendar/appointment_service.dart';
 import 'package:tooodooo_app/calendar/calendar_appointment.dart';
 import 'package:tooodooo_app/calendar/calendar_zoom_controller.dart';
+import 'package:tooodooo_app/calendar/calendar_edit_dialog.dart';
 import 'package:tooodooo_app/pages/home_page.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
+import 'package:tooodooo_app/util/app_icons.dart';
 import 'package:tooodooo_app/util/todo_selection_dialog.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -121,6 +123,41 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
     );
   }
 
+  /// Erstellt eine neue Aufgabe und fügt sie direkt zum Kalender hinzu
+  void _createAndAddNewTask(
+    String taskName, 
+    double priority, 
+    IconData? taskIcon, 
+    Duration? taskDuration,
+    DateTime startTime
+  ) {
+    // Endzeit basierend auf der angegebenen Dauer berechnen
+    final endTime = startTime.add(taskDuration ?? const Duration(minutes: 30));
+    
+    // Erstelle und füge den Kalendereintrag hinzu
+    setState(() {
+      _appointments.add(
+        CalendarAppointment(
+          subject: taskName,
+          startTime: startTime,
+          endTime: endTime,
+          color: AppTheme.getCalendarTaskColor(priority.toInt()),
+          notes: taskIcon != null ? AppIcons.getName(taskIcon) : null,
+          isAllDay: false,
+        ),
+      );
+    });
+
+    _saveAppointmentsAndNotify();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$taskName wurde zum Kalender hinzugefügt'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   /// Entfernt einen Termin aus dem Kalender
   void _removeAppointment(CalendarAppointment appointment) {
     setState(() {
@@ -162,23 +199,16 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
 
   /// Zeigt die Aufgabenauswahl an, wenn ein Zeitslot doppelt angetippt wird
   void _showTaskSelectionDialog(DateTime selectedDateTime) {
-    if (widget.tasks == null || widget.tasks!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Keine Aufgaben zum Hinzufügen verfügbar'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     showDialog(
       context: context,
       builder: (context) => TodoSelectionDialog(
-        tasks: widget.tasks!,
+        tasks: widget.tasks ?? [],
         selectedDateTime: selectedDateTime,
         onTaskSelected: (task) {
           _addTaskToCalendar(task, selectedDateTime);
+        },
+        onNewTaskCreated: (taskName, priority, icon, duration) {
+          _createAndAddNewTask(taskName, priority, icon, duration, selectedDateTime);
         },
       ),
     );
@@ -188,85 +218,39 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   void _showAppointmentOptions(CalendarAppointment appointment) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.backgroundColor,
-        title: Row(
-          children: [
-            Checkbox(
-              value: appointment.isCompleted,
-              onChanged: (value) {
-                Navigator.pop(context);
-                _toggleAppointmentCompletion(appointment);
-              },
-              activeColor: AppTheme.accentColor,
-              checkColor: Colors.white,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                appointment.subject,
-                style: TextStyle(
-                  color: AppTheme.textColor, 
-                  fontWeight: FontWeight.bold,
-                  decoration: appointment.isCompleted ? TextDecoration.lineThrough : null,
-                ),
+      builder: (context) => CalendarEditDialog(
+        appointment: appointment,
+        onSave: (updatedAppointment) {
+          // Finde den Index des aktuellen Termins
+          final index = _appointments.indexOf(appointment);
+          if (index != -1) {
+            setState(() {
+              // Ersetze den Termin durch den aktualisierten
+              _appointments[index] = updatedAppointment;
+            });
+            
+            _saveAppointmentsAndNotify();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Termin wurde aktualisiert'),
+                duration: Duration(seconds: 2),
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Status: ${appointment.isCompleted ? "Erledigt" : "Nicht erledigt"}',
-              style: TextStyle(
-                color: appointment.isCompleted ? Colors.green : AppTheme.textColor,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Start: ${DateFormat('dd.MM.yyyy - HH:mm').format(appointment.startTime)}',
-              style: TextStyle(color: AppTheme.textColor),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ende: ${DateFormat('dd.MM.yyyy - HH:mm').format(appointment.endTime)}',
-              style: TextStyle(color: AppTheme.textColor),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Dauer: ${appointment.endTime.difference(appointment.startTime).inHours}h ${appointment.endTime.difference(appointment.startTime).inMinutes % 60}m',
-              style: TextStyle(color: AppTheme.textColor),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: Text('Entfernen', style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              _removeAppointment(appointment);
-              Navigator.pop(context);
-            },
-          ),
-          TextButton(
-            child: Text(
-              appointment.isCompleted ? 'Als unerledigt markieren' : 'Als erledigt markieren', 
-              style: TextStyle(color: AppTheme.accentColor)
-            ),
-            onPressed: () {
-              _toggleAppointmentCompletion(appointment);
-              Navigator.pop(context);
-            },
-          ),
-          TextButton(
-            child: Text('Schließen', style: TextStyle(color: AppTheme.accentColor)),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        ],
+            );
+          }
+          Navigator.pop(context);
+        },
+        onDelete: () {
+          _removeAppointment(appointment);
+          Navigator.pop(context);
+        },
+        onToggleCompletion: (updatedAppointment) {
+          _toggleAppointmentCompletion(updatedAppointment);
+          Navigator.pop(context);
+        },
+        onCancel: () {
+          Navigator.pop(context);
+        },
       ),
     );
   }
