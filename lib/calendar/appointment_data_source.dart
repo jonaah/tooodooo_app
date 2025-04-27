@@ -12,9 +12,10 @@ class AppointmentDataSource extends CalendarDataSource {
   @override
   Color getColor(int index) {
     final CalendarAppointment appointment = appointments![index] as CalendarAppointment;
-    // Zeige einen abgedunkelten Farbton für erledigte Aufgaben
+    // Gräuliche Version der originalen Farbe für erledigte Aufgaben anzeigen
     if (appointment.isCompleted) {
-      return Colors.grey.shade700;
+      // Mische die Originalfarbe mit Grau
+      return Color.lerp(appointment.color, Colors.grey[400]!, 0.7)!;
     }
     return appointment.color;
   }

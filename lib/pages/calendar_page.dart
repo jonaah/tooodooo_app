@@ -399,8 +399,8 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
         timeSlotViewSettings: TimeSlotViewSettings(
           timeFormat: 'HH:mm',
           timeInterval: Duration(minutes: _zoomController.currentMinutesInterval),
-          timeIntervalHeight: _zoomController.timeIntervalHeight,
-          startHour: 0,
+          timeIntervalHeight: _zoomController.timeIntervalHeight * 0.7, // Reduziert die Höhe auf 70%
+          startHour: 6, // Beginnt um 6 Uhr morgens
           endHour: 24,
         ),
         headerStyle: CalendarHeaderStyle(
