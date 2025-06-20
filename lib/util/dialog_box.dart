@@ -115,7 +115,7 @@ class _DialogBoxState extends State<DialogBox> {
         textAlign: TextAlign.center,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: AppTheme.textColor,
+          color: AppTheme.secondaryTextColor,
           fontSize: 22,
         ),
       ),
@@ -134,7 +134,7 @@ class _DialogBoxState extends State<DialogBox> {
               Center(
                 child: TextField(
                   controller: widget.controller,
-                  style: TextStyle(color: AppTheme.textColor),
+                  style: TextStyle(color: AppTheme.backgroundColor),
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
@@ -142,14 +142,14 @@ class _DialogBoxState extends State<DialogBox> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                      borderSide: BorderSide(color: AppTheme.accentColor),
+                      borderSide: BorderSide(color: AppTheme.secondaryTextColor),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
                       borderSide: BorderSide(color: AppTheme.accentColor, width: 2),
                     ),
                     hintText: 'Enter Task',
-                    hintStyle: TextStyle(color: AppTheme.textColor.withOpacity(0.6)),
+                    hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6)),
                     filled: true,
                     fillColor: Colors.grey[800],
                   ),
@@ -162,7 +162,7 @@ class _DialogBoxState extends State<DialogBox> {
                 child: Text(
                   "Priority Level",
                   style: TextStyle(
-                    color: AppTheme.textColor,
+                    color: AppTheme.secondaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -176,7 +176,7 @@ class _DialogBoxState extends State<DialogBox> {
                 child: Text(
                   "Task Icon",
                   style: TextStyle(
-                    color: AppTheme.textColor,
+                    color: AppTheme.secondaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -195,7 +195,7 @@ class _DialogBoxState extends State<DialogBox> {
                       child: Container(
                         padding: EdgeInsets.all(AppTheme.smallPadding),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.accentColor : Colors.grey[800],
+                          color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : Colors.grey[800],
                           borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                           boxShadow: [
                             BoxShadow(
@@ -207,7 +207,7 @@ class _DialogBoxState extends State<DialogBox> {
                         ),
                         child: Icon(
                           icon, 
-                          color: isSelected ? Colors.white : AppTheme.textColor,
+                          color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
                           size: AppTheme.iconSize,
                         ),
                       ),
@@ -241,7 +241,7 @@ class _DialogBoxState extends State<DialogBox> {
                           ),
                           child: Icon(
                             icon, 
-                            color: isSelected ? Colors.white : AppTheme.textColor,
+                            color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
                             size: AppTheme.iconSize,
                           ),
                         ),
@@ -256,7 +256,7 @@ class _DialogBoxState extends State<DialogBox> {
                 child: TextButton(
                   onPressed: _openEmojiPicker,
                   style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.accentColor,
+                    foregroundColor: AppTheme.accentColor.withOpacity(0.1),
                     backgroundColor: Colors.grey[800],
                     padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
                     shape: RoundedRectangleBorder(
@@ -266,7 +266,7 @@ class _DialogBoxState extends State<DialogBox> {
                   child: Text(
                     "More Icons",
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
+                      color: AppTheme.secondaryTextColor,
                     ),
                   ),
                 ),
@@ -278,7 +278,7 @@ class _DialogBoxState extends State<DialogBox> {
                 child: Text(
                   "Duration",
                   style: TextStyle(
-                    color: AppTheme.textColor,
+                    color: AppTheme.secondaryTextColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -295,20 +295,20 @@ class _DialogBoxState extends State<DialogBox> {
                     decoration: BoxDecoration(
                       color: Colors.grey[800],
                       borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                      border: Border.all(color: AppTheme.accentColor),
+                      border: Border.all(color: AppTheme.secondaryTextColor),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.timer, size: AppTheme.iconSize, color: AppTheme.accentColor),
+                        Icon(Icons.timer, size: AppTheme.iconSize, color: AppTheme.secondaryTextColor),
                         SizedBox(width: AppTheme.smallPadding),
                         Text(
                           formattedDuration(),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: AppTheme.textColor,
+                            color: AppTheme.secondaryTextColor,
                           ),
                         ),
                       ],
@@ -323,8 +323,18 @@ class _DialogBoxState extends State<DialogBox> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    MyButton(text: "Save", onPressed: widget.onSave),
-                    MyButton(text: "Cancel", onPressed: widget.onCancel),
+                    MyButton(
+                      text: "Save",
+                      onPressed: widget.onSave,
+                      backgroundColor: AppTheme.accentColor.withOpacity(0.7),
+                      textColor: Colors.white,
+                    ),
+                    MyButton(
+                      text: "Cancel",
+                      onPressed: widget.onCancel,
+                      backgroundColor: AppTheme.accentColor.withOpacity(0.7),
+                      textColor: Colors.white,
+                    ),
                   ],
                 ),
               ),

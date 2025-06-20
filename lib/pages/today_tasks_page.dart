@@ -79,8 +79,8 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: ColorScheme.dark(
-              primary: AppTheme.accentColor,
-              onPrimary: Colors.white,
+              primary: Colors.white,
+              onPrimary: AppTheme.accentColor,
               surface: AppTheme.primaryColor,
               onSurface: AppTheme.textColor,
             ),
@@ -531,7 +531,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                 ),
               );
             },
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(Icons.calendar_month, color: Colors.white),
             label: const Text('Go to Calendar'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accentColor,

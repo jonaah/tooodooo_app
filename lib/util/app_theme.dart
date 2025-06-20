@@ -3,25 +3,27 @@ import 'package:flutter/material.dart';
 // A central place for app theme definitions to avoid magic numbers and hardcoded styles
 class AppTheme {
   // App colors
-  static const Color primaryColor = Color(0xFF494443); // Dark gray for app bar
-  static const Color backgroundColor = Color(0xFF57595A); // Background color
-  static const Color textColor = Color(0xFFDEDEDE); // Light text color
-  static const Color accentColor = Color(0xFF3D7A9F); // Blue accent instead of amber/yellow
+  static const Color primaryColor = Color(0xFF9A8674); // Dark gray for app bar
+  static const Color backgroundColor = Color(0xFFAECCDC); // Background color
+  static const Color textColor = Color(0xFF3C3636); // Dark text color
+  static const Color secondaryTextColor = Color(0xFFE9F6F6); // Lighter text color for subtitles
+  static const Color accentColor = Color(0xFF84D5FF); // Blue accent instead of amber/yellow
   static const Color dividerColor = Color(0xFF3D7A9F); // Divider color (same as accent)
-  
+  static const Color calendarBackgroundColor = Color(0xFFAECCDC); // Calendar background color
+
   // Priority colors - Green to Red progression
   static Color getPriorityColor(int priority) {
     switch (priority) {
       case 1:
-        return Colors.green[600]!.withOpacity(0.75); // Lowest priority - green
+        return Color(0xFF99D89A).withOpacity(0.75); // Lowest priority - green
       case 2:
-        return Colors.teal[500]!.withOpacity(0.75); // Low priority - teal 
+        return Color(0xFF7DDCD3).withOpacity(0.75); // Low priority - teal
       case 3:
-        return Colors.blue[500]!.withOpacity(0.75); // Medium priority - blue
+        return Color(0xFF6A96DC).withOpacity(0.75); // Medium priority - blue
       case 4:
-        return Colors.orange[600]!.withOpacity(0.75); // High priority - orange
+        return Color(0xFFCC8F5B).withOpacity(0.75); // High priority - orange
       case 5:
-        return Colors.red[600]!.withOpacity(0.75); // Highest priority - red
+        return Color(0xFFD86E69).withOpacity(0.75); // Highest priority - red
       default:
         return Colors.grey[500]!.withOpacity(0.75); // No priority assigned
     }
@@ -31,15 +33,15 @@ class AppTheme {
   static Color getCalendarTaskColor(int priority) {
     switch (priority) {
       case 1:
-        return Colors.green[600]!; // Lowest priority
+        return Color(0xFF99D89A); // Lowest priority
       case 2:
-        return Colors.teal[500]!; // Low priority
+        return Color(0xFF7DDCD3); // Low priority
       case 3:
-        return Colors.blue[500]!; // Medium priority
+        return Color(0xFF6A96DC); // Medium priority
       case 4:
-        return Colors.orange[600]!; // High priority
+        return Color(0xFFCC8F5B); // High priority
       case 5:
-        return Colors.red[600]!; // Highest priority
+        return Color(0xFFD86E69); // Highest priority
       default:
         return Colors.grey[500]!; // Default
     }
