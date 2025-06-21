@@ -54,6 +54,7 @@ class ToDoTile extends StatelessWidget {
         top: AppTheme.largePadding
       ),
       child: Slidable(
+        key: ValueKey(taskName), // <-- Add a unique key for each tile
         // Start action pane is for swiping from left to right (Edit)
         startActionPane: ActionPane(
           motion: const StretchMotion(),

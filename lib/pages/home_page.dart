@@ -48,7 +48,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final GlobalKey<SliderElementState> _sliderKey = GlobalKey<SliderElementState>();
   List<Task> toDoList = [];
@@ -56,12 +56,29 @@ class _HomePageState extends State<HomePage> {
   int? _editingIndex;
   int durationHours = 0; // Store hours part of duration
   int durationMinutes = 0; // Store minutes part of duration
+  Key listViewKey = UniqueKey(); // Key to force ListView rebuild
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadToDoList();
     IconManager.loadRecentIcons(); // Initialize icon manager
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setState(() {
+        listViewKey = UniqueKey(); // Force ListView to rebuild on resume
+      });
+    }
   }
 
   // Update the parent navigator whenever todo list changes
@@ -331,6 +348,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   )
                 : ListView.builder(
+                    key: listViewKey, // Use dynamic key to force rebuild
                     itemCount: toDoList.length,
                     itemBuilder: (context, index) {
                       return ToDoTile(
