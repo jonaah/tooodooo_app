@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:tooodooo_app/calendar/appointment_data_source.dart';
 import 'package:tooodooo_app/calendar/appointment_service.dart';
@@ -290,36 +291,36 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.backgroundColor,
         title: Text('Kalender Hilfe', 
-          style: TextStyle(color: AppTheme.textColor, fontWeight: FontWeight.bold),
+          style: TextStyle(color: AppTheme.darkTextColor, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('• Doppeltippen Sie auf einen Zeitslot, um eine Aufgabe hinzuzufügen',
-              style: TextStyle(color: AppTheme.textColor),
+              style: TextStyle(color: AppTheme.darkTextColor),
             ),
             SizedBox(height: 8),
             Text('• Tippen Sie auf einen Termin, um Details anzuzeigen oder ihn zu entfernen',
-              style: TextStyle(color: AppTheme.textColor),
+              style: TextStyle(color: AppTheme.darkTextColor),
             ),
             SizedBox(height: 8),
             Text('• Aufgaben ohne Dauer erhalten eine Standarddauer von 30 Minuten',
-              style: TextStyle(color: AppTheme.textColor),
+              style: TextStyle(color: AppTheme.darkTextColor),
             ),
             SizedBox(height: 8),
             Text('• Verwenden Sie Pinch-Gesten zum Vergrößern/Verkleinern der Zeitansicht',
-              style: TextStyle(color: AppTheme.textColor),
+              style: TextStyle(color: AppTheme.darkTextColor),
             ),
             SizedBox(height: 8),
             Text('• Zeitintervalle passen sich je nach Zoom-Stufe an (5min bis 1h)',
-              style: TextStyle(color: AppTheme.textColor),
+              style: TextStyle(color: AppTheme.darkTextColor),
             ),
           ],
         ),
         actions: [
           TextButton(
-            child: Text('Verstanden', style: TextStyle(color: AppTheme.accentColor)),
+            child: Text('Verstanden', style: TextStyle(color: AppTheme.secondaryTextColor,fontWeight: FontWeight.bold)),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -334,12 +335,27 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
 
   @override
   Widget build(BuildContext context) {
+    // Setze System UI Overlay Style JEDES MAL beim Build
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: AppTheme.primaryColor,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+    );
     return Scaffold(
       backgroundColor: AppTheme.calendarBackgroundColor,
       appBar: AppBar(
         title: const Text('KALENDER', style: AppTheme.appBarTitle),
         centerTitle: true,
         backgroundColor: AppTheme.primaryColor,
+        surfaceTintColor: AppTheme.primaryColor,
+        shadowColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: AppTheme.primaryColor,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.today),
@@ -376,65 +392,111 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
 
   /// Erstellt den Kalender mit Zoom-Funktionalität
   Widget _buildCalendarWithZoom() {
-    return Material(
-      color: Colors.transparent,
-      clipBehavior: Clip.hardEdge,
-      child: GestureDetector(
-        onScaleStart: (_) => {},
-        onScaleUpdate: (details) {
-          setState(() {
-            _zoomController.handleScale(details);
-          });
-        },
-        onScaleEnd: (_) => {},
-        child: SfCalendar(
-          controller: _calendarController,
-          view: CalendarView.week,
-          firstDayOfWeek: 1, // Montag
-          dataSource: AppointmentDataSource(_appointments),
-          allowViewNavigation: true,
-          showNavigationArrow: true,
-          minDate: DateTime.now().subtract(const Duration(days: 365)),
-          maxDate: DateTime.now().add(const Duration(days: 365)),
-          onTap: _handleCalendarTap,
-          timeSlotViewSettings: TimeSlotViewSettings(
-            timeFormat: 'HH:mm',
-            timeInterval: Duration(minutes: _zoomController.currentMinutesInterval),
-            timeIntervalHeight: _zoomController.timeIntervalHeight * 0.7, // Reduziert die Höhe auf 70%
-            startHour: 6, // Beginnt um 6 Uhr morgens
-            endHour: 24,
-          ),
-          headerStyle: CalendarHeaderStyle(
-            textStyle: const TextStyle(
-              color: AppTheme.textColor,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          child: Material(
+            color: Colors.transparent,
+            clipBehavior: Clip.hardEdge,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                appBarTheme: AppBarTheme(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: AppTheme.textColor,
+                  surfaceTintColor: AppTheme.primaryColor,
+                  iconTheme: Theme.of(context).iconTheme,
+                  titleTextStyle: AppTheme.appBarTitle,
+                ),
+                // Verhindert, dass das Calendar-Widget die System-UI beeinflusst
+                brightness: Theme.of(context).brightness,
+              ),
+              child: GestureDetector(
+                onScaleStart: (_) => {},
+                onScaleUpdate: (details) {
+                  setState(() {
+                    _zoomController.handleScale(details);
+                  });
+                },
+                onScaleEnd: (_) => {},
+                child: SfCalendar(
+                  controller: _calendarController,
+                  view: CalendarView.week,
+                  firstDayOfWeek: 1,
+                  dataSource: AppointmentDataSource(_appointments),
+                  allowViewNavigation: true,
+                  showNavigationArrow: true,
+                  minDate: DateTime.now().subtract(const Duration(days: 365)),
+                  maxDate: DateTime.now().add(const Duration(days: 365)),
+                  onTap: _handleCalendarTap,
+                  timeSlotViewSettings: TimeSlotViewSettings(
+                    timeFormat: 'HH:mm',
+                    timeInterval: Duration(minutes: _zoomController.currentMinutesInterval),
+                    timeIntervalHeight: _zoomController.timeIntervalHeight * 0.7,
+                    startHour: 6,
+                    endHour: 24,
+                    timeTextStyle: TextStyle(
+                      color: AppTheme.darkTextColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                  headerStyle: CalendarHeaderStyle(
+                    textStyle: const TextStyle(
+                      color: AppTheme.textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    backgroundColor: AppTheme.primaryColor,
+                  ),
+                  viewHeaderStyle: const ViewHeaderStyle(
+                    dayTextStyle: TextStyle(
+                      color: AppTheme.darkTextColor,
+                      fontSize: 12,
+                    ),
+                    dateTextStyle: TextStyle(
+                      color: AppTheme.darkTextColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  cellBorderColor: Colors.grey.shade700,
+                  backgroundColor: AppTheme.calendarBackgroundColor,
+                  todayHighlightColor: Colors.white,
+                  selectionDecoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 3,
+                    ),
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadius / 3),
+                  ),
+                  appointmentBuilder: (context, calendarAppointmentDetails) {
+                    final appointment = calendarAppointmentDetails.appointments.first;
+                    Color borderColor = Color.lerp(appointment.color, Colors.black, 0.3)!;
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: appointment.color,
+                        border: Border.all(
+                          color: borderColor,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.all(4),
+                      child: Text(
+                        appointment.subject,
+                        style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
-            backgroundColor: AppTheme.primaryColor,
           ),
-          viewHeaderStyle: const ViewHeaderStyle(
-            dayTextStyle: TextStyle(
-              color: AppTheme.textColor,
-              fontSize: 12,
-            ),
-            dateTextStyle: TextStyle(
-              color: AppTheme.textColor,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          cellBorderColor: Colors.grey.shade700,
-          backgroundColor: AppTheme.calendarBackgroundColor,
-          todayHighlightColor: AppTheme.accentColor,
-          selectionDecoration: BoxDecoration(
-            border: Border.all(
-              color: AppTheme.accentColor,
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(AppTheme.borderRadius / 3),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
   

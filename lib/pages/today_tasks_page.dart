@@ -257,6 +257,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         ),
         centerTitle: true,
         backgroundColor: AppTheme.primaryColor,
+        surfaceTintColor: AppTheme.primaryColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -275,7 +276,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         children: [
           // Day navigation header
           Container(
-            color: AppTheme.primaryColor.withOpacity(0.7),
+            color: AppTheme.primaryColor,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -294,7 +295,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                   child: Text(
                     isToday ? 'Today' : DateFormat('MMM d').format(_selectedDate),
                     style: const TextStyle(
-                      color: AppTheme.textColor,
+                      color: AppTheme.secondaryTextColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -500,7 +501,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
           Icon(
             isPastDate ? Icons.history : Icons.event_available,
             size: 64,
-            color: AppTheme.textColor.withOpacity(0.5),
+            color: AppTheme.secondaryTextColor,
           ),
           const SizedBox(height: 16),
           Text(
@@ -508,7 +509,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                 ? TodayTasksService.msgNoTasksScheduledPast
                 : TodayTasksService.msgNoTasksScheduled,
             style: TextStyle(
-              color: AppTheme.textColor.withOpacity(0.7),
+              color: AppTheme.secondaryTextColor,
               fontSize: 18,
             ),
           ),
@@ -517,7 +518,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
             TodayTasksService.msgDoubleTapToAdd,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppTheme.textColor.withOpacity(0.5),
+              color: AppTheme.secondaryTextColor,
               fontSize: 14,
             ),
           ),

@@ -287,7 +287,8 @@ class _HomePageState extends State<HomePage> {
         ),
         centerTitle: true,
         backgroundColor: AppTheme.primaryColor,
-        elevation: 0,
+
+        surfaceTintColor: AppTheme.primaryColor,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: createNewTask,

@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 // A central place for app theme definitions to avoid magic numbers and hardcoded styles
 class AppTheme {
   // App colors
-  static const Color primaryColor = Color(0xFF9A8674); // Dark gray for app bar
-  static const Color backgroundColor = Color(0xFFAECCDC); // Background color
-  static const Color textColor = Color(0xFF3C3636); // Dark text color
+  static const Color primaryColor = Color(0xFF755D47); // Dark gray for app bar
+  static const Color backgroundColor = Color(0xFFB6CCD8); // Background color
+  static const Color textColor = Color(0xFFE1DCDC); // Light text color
   static const Color secondaryTextColor = Color(0xFFE9F6F6); // Lighter text color for subtitles
+  static const Color darkTextColor = Color(0xFF2F3235); // Darker text color for contrast
   static const Color accentColor = Color(0xFF84D5FF); // Blue accent instead of amber/yellow
-  static const Color dividerColor = Color(0xFF3D7A9F); // Divider color (same as accent)
-  static const Color calendarBackgroundColor = Color(0xFFAECCDC); // Calendar background color
+  static const Color dividerColor = Color(0xFF102B39); // Divider color (same as accent)
+  static const Color calendarBackgroundColor = Color(0xFFC5D9E3); // Calendar background color
 
   // Priority colors - Green to Red progression
   static Color getPriorityColor(int priority) {
@@ -21,7 +22,7 @@ class AppTheme {
       case 3:
         return Color(0xFF6A96DC).withOpacity(0.75); // Medium priority - blue
       case 4:
-        return Color(0xFFCC8F5B).withOpacity(0.75); // High priority - orange
+        return Color(0xFFEF9447).withOpacity(0.75); // High priority - orange
       case 5:
         return Color(0xFFD86E69).withOpacity(0.75); // Highest priority - red
       default:

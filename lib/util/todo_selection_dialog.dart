@@ -89,7 +89,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
     final formattedTime = '${widget.selectedDateTime.hour.toString().padLeft(2, '0')}:${widget.selectedDateTime.minute.toString().padLeft(2, '0')}';
     
     return Dialog(
-      backgroundColor: AppTheme.backgroundColor,
+      backgroundColor: AppTheme.primaryColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
@@ -102,7 +102,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
             Text(
               'Add Task to Calendar',
               style: TextStyle(
-                color: AppTheme.textColor,
+                color: AppTheme.secondaryTextColor,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -110,7 +110,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
             Text(
               'Selected Time: $formattedDate at $formattedTime',
               style: TextStyle(
-                color: AppTheme.textColor.withOpacity(0.8),
+                color: AppTheme.secondaryTextColor,
                 fontSize: 14,
               ),
             ),
@@ -123,7 +123,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: AppTheme.accentColor,
+                  color: Colors.grey[800],
                   borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                   boxShadow: [
                     BoxShadow(
@@ -137,7 +137,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
                   children: [
                     Icon(
                       Icons.add_circle_outline,
-                      color: Colors.white,
+                      color: AppTheme.accentColor,
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -157,7 +157,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
             Text(
               'Or select an existing task:',
               style: TextStyle(
-                color: AppTheme.textColor,
+                color: AppTheme.secondaryTextColor,
                 fontSize: 16,
               ),
             ),
@@ -231,7 +231,7 @@ class _TodoSelectionDialogState extends State<TodoSelectionDialog> {
                     },
                   ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
