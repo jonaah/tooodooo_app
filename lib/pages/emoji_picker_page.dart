@@ -36,7 +36,7 @@ class EmojiPickerPage extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: AppTheme.textColor,
+                  color: AppTheme.darkTextColor,
                 ),
               ),
               SizedBox(height: AppTheme.smallPadding),
@@ -49,7 +49,7 @@ class EmojiPickerPage extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: AppTheme.textColor,
+                  color: AppTheme.darkTextColor,
                 ),
               ),
               SizedBox(height: AppTheme.smallPadding),

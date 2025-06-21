@@ -350,7 +350,6 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
         centerTitle: true,
         backgroundColor: AppTheme.primaryColor,
         surfaceTintColor: AppTheme.primaryColor,
-        shadowColor: Colors.transparent,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: AppTheme.primaryColor,
           statusBarIconBrightness: Brightness.light,

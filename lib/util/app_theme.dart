@@ -22,9 +22,9 @@ class AppTheme {
       case 3:
         return Color(0xFF6A96DC).withOpacity(0.75); // Medium priority - blue
       case 4:
-        return Color(0xFFEF9447).withOpacity(0.75); // High priority - orange
+        return Color(0xFFF87C47).withOpacity(0.75); // High priority - orange
       case 5:
-        return Color(0xFFD86E69).withOpacity(0.75); // Highest priority - red
+        return Color(0xFFFF554C).withOpacity(0.75); // Highest priority - red
       default:
         return Colors.grey[500]!.withOpacity(0.75); // No priority assigned
     }
@@ -40,9 +40,9 @@ class AppTheme {
       case 3:
         return Color(0xFF6A96DC); // Medium priority
       case 4:
-        return Color(0xFFCC8F5B); // High priority
+        return Color(0xFFFA7842); // High priority
       case 5:
-        return Color(0xFFD86E69); // Highest priority
+        return Color(0xFFFF544C); // Highest priority
       default:
         return Colors.grey[500]!; // Default
     }

@@ -327,7 +327,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                               horizontal: AppTheme.defaultPadding
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.accentColor.withOpacity(0.2),
+                              color: AppTheme.dividerColor.withOpacity(0.4),
                               borderRadius: BorderRadius.circular(AppTheme.borderRadius),
                             ),
                             child: Row(
@@ -340,7 +340,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                                 Text(
                                   'Current Time: ${DateFormat('h:mm a').format(currentTime)}',
                                   style: const TextStyle(
-                                    color: AppTheme.textColor,
+                                    color: AppTheme.secondaryTextColor,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -390,7 +390,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                               ? TodayTasksService.sectionUpcoming 
                               : TodayTasksService.sectionScheduled,
                             icon: isToday ? Icons.upcoming : Icons.event,
-                            color: AppTheme.accentColor,
+                            color: AppTheme.darkTextColor,
                           ),
                           ...upcomingTasks.map((task) => TaskCard(
                             appointment: task,
