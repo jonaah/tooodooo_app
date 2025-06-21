@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tooodooo_app/util/app_theme.dart';
 
 class SliderElement extends StatefulWidget {
   const SliderElement({super.key});

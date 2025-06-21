@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MainNavigator extends StatefulWidget {
-  const MainNavigator({Key? key}) : super(key: key);
+  const MainNavigator({super.key});
 
   @override
   State<MainNavigator> createState() => _MainNavigatorState();
@@ -62,6 +62,13 @@ class _MainNavigatorState extends State<MainNavigator> {
     }
   }
 
+  // Method to handle settings changes from SettingsPage
+  void handleSettingsChanged() {
+    if (_calendarPageKey.currentState != null) {
+      _calendarPageKey.currentState!.refreshSettings();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,6 +78,7 @@ class _MainNavigatorState extends State<MainNavigator> {
         children: [
           HomePage(
             onTasksUpdated: updateTasks,
+            onSettingsChanged: handleSettingsChanged,
           ),
           TodayTasksPage(
             key: _todayPageKey,
@@ -112,4 +120,3 @@ class _MainNavigatorState extends State<MainNavigator> {
     );
   }
 }
-

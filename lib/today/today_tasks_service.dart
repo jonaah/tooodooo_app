@@ -127,7 +127,7 @@ class TodayTasksService {
       // Check if it's within the current week
       final difference = selectedDateNoTime.difference(today).inDays;
       if (difference > 0 && difference < 7) {
-        return 'IN ${difference} DAYS';
+        return 'IN $difference DAYS';
       } else if (difference < 0 && difference > -7) {
         return '${-difference} DAYS AGO';
       } else {

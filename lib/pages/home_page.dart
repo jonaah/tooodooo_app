@@ -7,6 +7,7 @@ import 'package:tooodooo_app/util/dialog_box.dart';
 import 'package:tooodooo_app/util/icon_manager.dart';
 import 'package:tooodooo_app/util/app_icons.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
+import 'package:tooodooo_app/pages/settings_page.dart';
 
 class Task {
   String name;
@@ -41,8 +42,9 @@ class Task {
 
 class HomePage extends StatefulWidget {
   final Function(List<Task>)? onTasksUpdated;
-  
-  const HomePage({super.key, this.onTasksUpdated});
+  final VoidCallback? onSettingsChanged;
+
+  const HomePage({super.key, this.onTasksUpdated, this.onSettingsChanged});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -304,10 +306,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ),
         centerTitle: true,
         backgroundColor: AppTheme.primaryColor,
-
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: AppTheme.textColor),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage(
+                  onSettingsSaved: () {
+                    widget.onSettingsChanged?.call();
+                  },
+                )),
+              );
+            },
+          ),
+        ],
         surfaceTintColor: AppTheme.primaryColor,
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_fab',
         onPressed: createNewTask,
         backgroundColor: AppTheme.primaryColor,
         child: Icon(

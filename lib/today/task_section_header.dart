@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tooodooo_app/util/app_theme.dart';
 
 class TaskSectionHeader extends StatelessWidget {
   final String title;
@@ -7,11 +6,11 @@ class TaskSectionHeader extends StatelessWidget {
   final Color color;
 
   const TaskSectionHeader({
-    Key? key,
+    super.key,
     required this.title,
     required this.icon,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

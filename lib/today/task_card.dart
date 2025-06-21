@@ -16,7 +16,7 @@ class TaskCard extends StatelessWidget {
   final Function(CalendarAppointment) onTaskRemoved;
 
   const TaskCard({
-    Key? key,
+    super.key,
     required this.appointment,
     this.isCurrentTask = false,
     this.isPastTask = false,
@@ -27,7 +27,7 @@ class TaskCard extends StatelessWidget {
     required this.onTaskCompleted,
     required this.onTaskIncomplete,
     required this.onTaskRemoved,
-  }) : super(key: key);
+  });
 
   // Format time as "9:30 AM"
   String _formatTime(DateTime time) {

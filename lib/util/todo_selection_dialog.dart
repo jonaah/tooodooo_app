@@ -11,12 +11,12 @@ class TodoSelectionDialog extends StatefulWidget {
   final Function(String, double, IconData?, Duration?) onNewTaskCreated;
 
   const TodoSelectionDialog({
-    Key? key,
+    super.key,
     required this.tasks,
     required this.selectedDateTime,
     required this.onTaskSelected,
     required this.onNewTaskCreated,
-  }) : super(key: key);
+  });
 
   @override
   State<TodoSelectionDialog> createState() => _TodoSelectionDialogState();

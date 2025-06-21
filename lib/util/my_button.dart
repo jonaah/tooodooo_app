@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tooodooo_app/util/app_theme.dart';
 
 class MyButton extends StatelessWidget {
   final String text;
@@ -8,7 +7,7 @@ class MyButton extends StatelessWidget {
   final Color backgroundColor;
   final Color textColor;
   
-  MyButton({
+  const MyButton({
     super.key,
     required this.text,
     required this.onPressed,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:tooodooo_app/calendar/appointment_data_source.dart';
 import 'package:tooodooo_app/calendar/appointment_service.dart';
@@ -16,10 +17,10 @@ class CalendarPage extends StatefulWidget {
   final Function(String)? onAppointmentsChanged;
 
   const CalendarPage({
-    Key? key, 
+    super.key, 
     this.tasks,
     this.onAppointmentsChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<CalendarPage> createState() => CalendarPageState();
@@ -42,6 +43,10 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   DateTime? _lastTapTime;
   DateTime? _lastTapPosition;
 
+  int _startHour = 6;
+  int _endHour = 24;
+  Key _calendarKey = UniqueKey();
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +54,7 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
     _calendarController = CalendarController();
     _calendarController.view = CalendarView.week;
     _loadAppointments();
+    _loadCalendarSettings();
   }
   
   @override
@@ -62,7 +68,24 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _loadAppointments();
+      _loadCalendarSettings();
     }
+  }
+
+  Future<void> _loadCalendarSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final initialHour = prefs.getInt('calendarInitialDisplayHour') ?? 8;
+    final initialMinute = prefs.getInt('calendarInitialDisplayMinute') ?? 0;
+
+    setState(() {
+      _startHour = prefs.getInt('calendarStartHour') ?? 6;
+      _endHour = prefs.getInt('calendarEndHour') ?? 24;
+
+      final now = _calendarController.displayDate ?? DateTime.now();
+      _calendarController.displayDate = DateTime(now.year, now.month, now.day, initialHour, initialMinute);
+
+      _calendarKey = UniqueKey();
+    });
   }
 
   /// Lädt alle gespeicherten Termine
@@ -333,6 +356,10 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
     _loadAppointments();
   }
 
+  void refreshSettings() {
+    _loadCalendarSettings();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Setze System UI Overlay Style JEDES MAL beim Build
@@ -379,12 +406,13 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
       ),
       body: _buildCalendarWithZoom(),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'calendar_fab',
         onPressed: () {
           _showTaskSelectionDialog(_selectedDate);
         },
         backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.add_task, color: AppTheme.textColor),
         tooltip: 'Aufgabe zum Kalender hinzufügen',
+        child: const Icon(Icons.add_task, color: AppTheme.textColor),
       ),
     );
   }
@@ -420,6 +448,7 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                 },
                 onScaleEnd: (_) => {},
                 child: SfCalendar(
+                  key: _calendarKey,
                   controller: _calendarController,
                   view: CalendarView.week,
                   firstDayOfWeek: 1,
@@ -433,8 +462,8 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                     timeFormat: 'HH:mm',
                     timeInterval: Duration(minutes: _zoomController.currentMinutesInterval),
                     timeIntervalHeight: _zoomController.timeIntervalHeight * 0.7,
-                    startHour: 6,
-                    endHour: 24,
+                    startHour: _startHour.toDouble(),
+                    endHour: _endHour.toDouble(),
                     timeTextStyle: TextStyle(
                       color: AppTheme.darkTextColor,
                       fontSize: 12,

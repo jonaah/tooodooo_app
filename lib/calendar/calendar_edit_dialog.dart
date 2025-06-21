@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:tooodooo_app/calendar/calendar_appointment.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
 import 'package:tooodooo_app/util/app_icons.dart';
-import 'package:tooodooo_app/util/my_button.dart';
 import 'package:tooodooo_app/util/slider_element.dart';
 import 'package:tooodooo_app/util/duration_picker.dart';
 import 'package:tooodooo_app/pages/emoji_picker_page.dart';
@@ -17,13 +16,13 @@ class CalendarEditDialog extends StatefulWidget {
   final VoidCallback onCancel;
 
   const CalendarEditDialog({
-    Key? key,
+    super.key,
     required this.appointment,
     required this.onSave,
     required this.onDelete,
     required this.onToggleCompletion,
     required this.onCancel,
-  }) : super(key: key);
+  });
 
   @override
   _CalendarEditDialogState createState() => _CalendarEditDialogState();
@@ -107,11 +106,11 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.dark().copyWith(
-            primaryColor: AppTheme.accentColor,
+            primaryColor: AppTheme.primaryColor,
             colorScheme: ColorScheme.dark(
-              primary: AppTheme.accentColor,
-              onPrimary: Colors.white,
-              surface: AppTheme.backgroundColor,
+              primary: AppTheme.secondaryTextColor,
+              onPrimary: AppTheme.darkTextColor,
+              surface: AppTheme.primaryColor,
               onSurface: AppTheme.textColor,
             ),
           ),
@@ -129,9 +128,9 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
             data: ThemeData.dark().copyWith(
               primaryColor: AppTheme.accentColor,
               colorScheme: ColorScheme.dark(
-                primary: AppTheme.accentColor,
-                onPrimary: Colors.white,
-                surface: AppTheme.backgroundColor,
+                primary: AppTheme.secondaryTextColor,
+                onPrimary: AppTheme.darkTextColor,
+                surface: AppTheme.primaryColor,
                 onSurface: AppTheme.textColor,
               ),
             ),

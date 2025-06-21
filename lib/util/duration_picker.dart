@@ -7,10 +7,10 @@ class DurationPickerDialog extends StatefulWidget {
   final int initialMinutes;
   
   const DurationPickerDialog({
-    Key? key,
+    super.key,
     this.initialHours = 0,
     this.initialMinutes = 0,
-  }) : super(key: key);
+  });
 
   @override
   State<DurationPickerDialog> createState() => _DurationPickerDialogState();
@@ -76,7 +76,7 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
-      content: Container(
+      content: SizedBox(
         height: 180,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -85,11 +85,12 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
             SizedBox(
               width: 70,
               child: CupertinoPicker(
+                backgroundColor: AppTheme.primaryColor,
                 selectionOverlay: Container(
                   decoration: BoxDecoration(
                     border: Border(
-                      top: BorderSide(color: AppTheme.accentColor, width: 1.5),
-                      bottom: BorderSide(color: AppTheme.accentColor, width: 1.5),
+                      top: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                      bottom: BorderSide(color: AppTheme.primaryColor, width: 1.5),
                     ),
                   ),
                 ),
@@ -134,31 +135,32 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
             SizedBox(
               width: 80,
               child: CupertinoPicker(
+                backgroundColor: AppTheme.primaryColor, // Set background to primaryColor
                 selectionOverlay: Container(
                   decoration: BoxDecoration(
                     border: Border(
-                      top: BorderSide(color: AppTheme.accentColor, width: 1.5),
-                      bottom: BorderSide(color: AppTheme.accentColor, width: 1.5),
+                      top: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                      bottom: BorderSide(color: AppTheme.primaryColor, width: 1.5),
                     ),
                   ),
                 ),
                 itemExtent: 32,
                 looping: true, // Allow minutes to loop
                 onSelectedItemChanged: _updateMinutes,
+                scrollController: FixedExtentScrollController(
+                  initialItem: (_minutes / 5).round(),
+                ),
                 children: List<Widget>.generate(12, (index) {
                   return Center(
                     child: Text(
                       '${(index * 5).toString().padLeft(2, '0')} min',
                       style: TextStyle(
                         fontSize: 20,
-                        color: AppTheme.textColor,
+                        color: AppTheme.textColor, // Use textColor instead of primaryColor
                       ),
                     ),
                   );
                 }),
-                scrollController: FixedExtentScrollController(
-                  initialItem: (_minutes / 5).round(),
-                ),
               ),
             ),
           ],
@@ -168,9 +170,11 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
-            foregroundColor: Colors.white70,
+            foregroundColor: AppTheme.textColor, // Use textColor
           ),
-          child: Text('Cancel'),
+          child: Text('Cancel',
+          style: TextStyle(color: AppTheme.textColor)
+            ),
         ),
         TextButton(
           onPressed: () {
@@ -180,9 +184,9 @@ class _DurationPickerDialogState extends State<DurationPickerDialog> {
             });
           },
           style: TextButton.styleFrom(
-            foregroundColor: AppTheme.accentColor,
+            foregroundColor: AppTheme.textColor, // Use textColor
           ),
-          child: Text('Save'),
+          child: Text('Save', style: TextStyle(color: AppTheme.textColor)),
         ),
       ],
     );

@@ -13,10 +13,10 @@ class TodayTasksPage extends StatefulWidget {
   final Function(String)? onTaskRemoved;
 
   const TodayTasksPage({
-    Key? key, 
+    super.key, 
     this.tasks,
     this.onTaskRemoved,
-  }) : super(key: key);
+  });
 
   @override
   State<TodayTasksPage> createState() => TodayTasksPageState();
@@ -83,8 +83,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
               onPrimary: AppTheme.accentColor,
               surface: AppTheme.primaryColor,
               onSurface: AppTheme.textColor,
-            ),
-            dialogBackgroundColor: AppTheme.backgroundColor,
+            ), dialogTheme: DialogThemeData(backgroundColor: AppTheme.backgroundColor),
           ),
           child: DatePickerDialog(
             initialDate: _selectedDate,
@@ -444,8 +443,9 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                               date.day == _selectedDate.day;
               
               String label;
-              if (dayOffset == -2) label = 'Day -2';
-              else if (dayOffset == -1) label = 'Yesterday';
+              if (dayOffset == -2) {
+                label = 'Day -2';
+              } else if (dayOffset == -1) label = 'Yesterday';
               else if (dayOffset == 0) label = 'Today';
               else if (dayOffset == 1) label = 'Tomorrow';
               else label = 'Day +2';
