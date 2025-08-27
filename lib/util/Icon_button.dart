@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:tooodooo_app/util/my_button.dart';
 import 'package:tooodooo_app/util/slider_element.dart';
 
-class DialogBox extends StatefulWidget {
+class LegacyDialogBox extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback onSave;
   final VoidCallback onCancel;
   final GlobalKey<SliderElementState> sliderKey;
   final Function(IconData) onIconSelected;
 
-  const DialogBox({
+  const LegacyDialogBox({
     super.key,
     required this.controller,
     required this.onSave,
@@ -19,10 +19,10 @@ class DialogBox extends StatefulWidget {
   });
 
   @override
-  _DialogBoxState createState() => _DialogBoxState();
+  _LegacyDialogBoxState createState() => _LegacyDialogBoxState();
 }
 
-class _DialogBoxState extends State<DialogBox> {
+class _LegacyDialogBoxState extends State<LegacyDialogBox> {
   IconData? _selectedIcon;
 
   void _handleIconTap(IconData icon) {

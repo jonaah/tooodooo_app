@@ -109,41 +109,24 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
 
   /// Fügt eine Aufgabe dem Kalender hinzu
   void _addTaskToCalendar(Task task, DateTime startTime) {
-    // Verwende die Aufgabendauer oder Standarddauer (30 Minuten)
     final Duration taskDuration = task.duration ?? const Duration(minutes: 30);
     final endTime = startTime.add(taskDuration);
-    
-    // Zeige Nachricht bei Verwendung der Standarddauer
     if (task.duration == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Standarddauer von 30 Minuten wird verwendet'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Standarddauer von 30 Minuten wird verwendet'), duration: Duration(seconds: 2))); }
     setState(() {
-      _appointments.add(
-        CalendarAppointment(
-          subject: task.name,
-          startTime: startTime,
-          endTime: endTime,
-          color: AppTheme.getCalendarTaskColor(task.priority.toInt()),
-          notes: task.iconName,
-          isAllDay: false,
-        ),
-      );
+      _appointments.add(CalendarAppointment(
+        subject: task.name,
+        startTime: startTime,
+        endTime: endTime,
+        color: Colors.grey[800]!, // neutral background base (legacy color field kept)
+        notes: task.iconName,
+        isAllDay: false,
+        priority: task.priority.toInt(),
+        customColorValue: task.colorValue,
+      ));
     });
-
     _saveAppointmentsAndNotify();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${task.name} wurde zum Kalender hinzugefügt'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${task.name} wurde zum Kalender hinzugefügt'), duration: const Duration(seconds: 2)));
   }
 
   /// Erstellt eine neue Aufgabe und fügt sie direkt zum Kalender hinzu
@@ -154,31 +137,20 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
     Duration? taskDuration,
     DateTime startTime
   ) {
-    // Endzeit basierend auf der angegebenen Dauer berechnen
     final endTime = startTime.add(taskDuration ?? const Duration(minutes: 30));
-    
-    // Erstelle und füge den Kalendereintrag hinzu
     setState(() {
-      _appointments.add(
-        CalendarAppointment(
-          subject: taskName,
-          startTime: startTime,
-          endTime: endTime,
-          color: AppTheme.getCalendarTaskColor(priority.toInt()),
-          notes: taskIcon != null ? AppIcons.getName(taskIcon) : null,
-          isAllDay: false,
-        ),
-      );
+      _appointments.add(CalendarAppointment(
+        subject: taskName,
+        startTime: startTime,
+        endTime: endTime,
+        color: Colors.grey[800]!,
+        notes: taskIcon != null ? AppIcons.getName(taskIcon) : null,
+        isAllDay: false,
+        priority: priority.toInt(),
+      ));
     });
-
     _saveAppointmentsAndNotify();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$taskName wurde zum Kalender hinzugefügt'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$taskName wurde zum Kalender hinzugefügt'), duration: const Duration(seconds: 2)));
   }
 
   /// Entfernt einen Termin aus dem Kalender
@@ -499,30 +471,50 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                     borderRadius: BorderRadius.circular(AppTheme.borderRadius / 3),
                   ),
                   appointmentBuilder: (context, calendarAppointmentDetails) {
-                    final appointment = calendarAppointmentDetails.appointments.first;
-                    Color borderColor = Color.lerp(appointment.color, Colors.black, 0.3)!;
+                    final appointment = calendarAppointmentDetails.appointments.first as CalendarAppointment;
+                    final prio = (appointment.priority ?? 3).clamp(1,5);
+                    // Determine display color preference: custom color > priority color > stored color
+                    final displayColor = appointment.customColorValue != null
+                        ? Color(appointment.customColorValue!)
+                        : AppTheme.getCalendarTaskColor(prio);
+                    final icon = appointment.notes != null ? AppIcons.getIcon(appointment.notes!) : null;
                     return Container(
-                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
                       decoration: BoxDecoration(
-                        color: appointment.color,
-                        border: Border.all(
-                          color: borderColor,
-                          width: 2,
-                        ),
+                        color: displayColor.withOpacity(0.85),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black26, width: 1),
                       ),
-                      padding: const EdgeInsets.all(4),
-                      child: Text(
-                        appointment.subject,
-                        style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
+
+                        children: [
+                          Expanded(
+                            child: Text(
+                              appointment.subject,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (icon != null) ...[
+                            Icon(icon, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                          ],
+                        ],
                       ),
                     );
                   },
                 ),
               ),
             ),
-          ),
+          )
         );
       },
     );

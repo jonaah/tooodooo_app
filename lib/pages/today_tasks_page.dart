@@ -7,15 +7,20 @@ import 'package:tooodooo_app/today/task_card.dart';
 import 'package:tooodooo_app/today/task_section_header.dart';
 import 'package:tooodooo_app/today/today_tasks_service.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
+import 'package:tooodooo_app/util/todo_tile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class TodayTasksPage extends StatefulWidget {
   final List<Task>? tasks;
   final Function(String)? onTaskRemoved;
+  final Function(List<Task>)? onTasksUpdated; // new callback for task state changes
 
   const TodayTasksPage({
     super.key, 
     this.tasks,
     this.onTaskRemoved,
+    this.onTasksUpdated,
   });
 
   @override
@@ -33,12 +38,16 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
   DateTime _selectedDate = DateTime.now();
   DateTime _today = DateTime.now();
   
+  List<Task> _tasksLocal = [];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadAppointments();
-    
+    _tasksLocal = widget.tasks != null ? widget.tasks!.map((t) => t).toList() : [];
+    _loadTasksFromPrefs();
+
     // Initialize today with just the date part (no time)
     _today = DateTime(
       DateTime.now().year,
@@ -211,6 +220,48 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
     );
   }
 
+  Future<void> _loadTasksFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final str = prefs.getString('toDoList');
+    if (str != null) {
+      try {
+        final decoded = jsonDecode(str) as List;
+        setState(() {
+          _tasksLocal = decoded.map((e) => Task.fromJson(e)).toList();
+        });
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _saveTasks() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('toDoList', jsonEncode(_tasksLocal.map((t) => t.toJson()).toList()));
+    widget.onTasksUpdated?.call(_tasksLocal);
+  }
+
+  void _toggleTask(int index, bool? value) {
+    setState(() {
+      final task = _tasksLocal[index];
+      if (task.isGroup) {
+        final allComplete = task.subtasks.isNotEmpty && task.subtasks.every((s) => s.completed);
+        for (final s in task.subtasks) { s.completed = !allComplete; }
+        task.recalcCompletion();
+      } else {
+        task.completed = value ?? !task.completed;
+      }
+    });
+    _saveTasks();
+  }
+
+  void _toggleSubTask(int taskIndex, int subIndex, bool newVal) {
+    setState(() {
+      final task = _tasksLocal[taskIndex];
+      task.subtasks[subIndex].completed = newVal;
+      task.recalcCompletion();
+    });
+    _saveTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get appointments for the selected date
@@ -310,10 +361,10 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
           
           // Tasks list
           Expanded(
-            child: selectedDateAppointments.isEmpty
+            child: selectedDateAppointments.isEmpty && _tasksLocal.isEmpty
                 ? _buildEmptyView(isPastDate: _selectedDate.isBefore(_today))
                 : RefreshIndicator(
-                    onRefresh: _loadAppointments,
+                    onRefresh: () async { await _loadAppointments(); await _loadTasksFromPrefs(); },
                     color: AppTheme.accentColor,
                     child: ListView(
                       padding: const EdgeInsets.all(AppTheme.defaultPadding),
@@ -417,7 +468,7 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
                             onTaskRemoved: _removeAppointment,
                           )),
                         ],
-                        
+
                         // Add extra space at the bottom
                         const SizedBox(height: 60),
                       ],

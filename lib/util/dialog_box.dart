@@ -18,6 +18,10 @@ class DialogBox extends StatefulWidget {
   final bool isEditing;
   final IconData? initialIcon;
   final double? initialPriority;
+  final bool? initialIsGroup;
+  final List<Map<String, dynamic>>? initialSubtasks; // [{name, completed}]
+  final Color? initialColor;
+  final Color? initialColorValue; // alternative name support
 
   const DialogBox({
     super.key,
@@ -32,16 +36,46 @@ class DialogBox extends StatefulWidget {
     this.isEditing = false,
     this.initialIcon,
     this.initialPriority,
+    this.initialIsGroup,
+    this.initialSubtasks,
+    this.initialColor,
+    this.initialColorValue,
   });
 
   @override
-  _DialogBoxState createState() => _DialogBoxState();
+  DialogBoxState createState() => DialogBoxState();
 }
 
-class _DialogBoxState extends State<DialogBox> {
+class DialogBoxState extends State<DialogBox> {
   IconData? _selectedIcon;
   late int hours;
   late int minutes;
+  bool _isGroup = false;
+  final TextEditingController _subtaskController = TextEditingController();
+  final List<Map<String, dynamic>> _subtasks = [];
+  Color? _selectedColor; // renamed internal storage
+  Color? get selectedColor => _selectedColor; // public getter expected by callers
+  Color? get selectedColorValue => _selectedColor; // legacy public getter
+
+  // Preset palette
+  static const List<Color> _presetColors = [
+    Color(0xFF81DA83), // green
+    Color(0xFF63C8BF), // teal
+    Color(0xFF6A96DC), // blue
+    Color(0xFFF87C47), // orange
+    Color(0xFFFF554C), // red
+    Color(0xFFAA66CC), // purple
+    Color(0xFFFFC107), // amber
+    Color(0xFF26A69A), // green teal
+    Color(0xFF9E9E9E), // gray
+  ];
+
+  bool get isGroup => _isGroup;
+  List<Map<String, dynamic>> getSubtasks() => _subtasks
+      .map((e) => {"name": e['name'], "completed": e['completed'] == true})
+      .toList();
+
+  List<Map<String, dynamic>> buildSubtasksCopy() => getSubtasks();
 
   @override
   void initState() {
@@ -49,6 +83,11 @@ class _DialogBoxState extends State<DialogBox> {
     _selectedIcon = widget.initialIcon;
     hours = widget.durationHours;
     minutes = widget.durationMinutes;
+    _isGroup = widget.initialIsGroup ?? false;
+    if (widget.initialSubtasks != null) {
+      _subtasks.addAll(widget.initialSubtasks!);
+    }
+    _selectedColor = widget.initialColor ?? widget.initialColorValue;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialPriority != null) {
@@ -101,6 +140,28 @@ class _DialogBoxState extends State<DialogBox> {
     }
   }
 
+  void _addSubtask() {
+    final text = _subtaskController.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        _subtasks.add({'name': text, 'completed': false});
+        _subtaskController.clear();
+      });
+    }
+  }
+
+  void _toggleSubtask(int index) {
+    setState(() {
+      _subtasks[index]['completed'] = !(_subtasks[index]['completed'] == true);
+    });
+  }
+
+  void _deleteSubtask(int index) {
+    setState(() {
+      _subtasks.removeAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<IconData> displayIcons = IconManager.recentIcons;
@@ -123,8 +184,8 @@ class _DialogBoxState extends State<DialogBox> {
         borderRadius: BorderRadius.circular(AppTheme.borderRadius),
       ),
       content: SizedBox(
-        width: 300,
-        height: 450,
+        width: 320,
+        height: 560,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -155,7 +216,174 @@ class _DialogBoxState extends State<DialogBox> {
                   ),
                 ),
               ),
-              
+
+              // Group toggle
+              Padding(
+                padding: EdgeInsets.only(top: AppTheme.smallPadding),
+                child: Row(
+                  children: [
+                    Switch(
+                      value: _isGroup,
+                      activeColor: AppTheme.accentColor,
+                      onChanged: (val) {
+                        setState(() { _isGroup = val; });
+                      },
+                    ),
+                    Text(
+                      "Group Task",
+                      style: TextStyle(color: AppTheme.secondaryTextColor, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (_isGroup) ...[
+                // Subtasks input
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _subtaskController,
+                        style: TextStyle(color: AppTheme.secondaryTextColor),
+                        decoration: InputDecoration(
+                          hintText: 'Add item',
+                          hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                          filled: true,
+                          fillColor: Colors.grey[800],
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[600]!),
+                          ),
+                        ),
+                        onSubmitted: (_) => _addSubtask(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: _addSubtask,
+                      icon: Icon(Icons.add_circle, color: AppTheme.accentColor),
+                      tooltip: 'Add subtask',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Subtasks list
+                if (_subtasks.isEmpty)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'No items yet',
+                      style: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6)),
+                    ),
+                  )
+                else
+                  Column(
+                    children: List.generate(_subtasks.length, (i) {
+                      final sub = _subtasks[i];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[850],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _toggleSubtask(i),
+                              child: Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: sub['completed'] == true ? AppTheme.accentColor.withOpacity(0.8) : Colors.transparent,
+                                  border: Border.all(color: AppTheme.secondaryTextColor, width: 1.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: sub['completed'] == true
+                                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                sub['name'] ?? '',
+                                style: TextStyle(
+                                  color: AppTheme.secondaryTextColor.withOpacity(sub['completed'] == true ? 0.5 : 0.9),
+                                  decoration: sub['completed'] == true ? TextDecoration.lineThrough : null,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => _deleteSubtask(i),
+                              icon: Icon(Icons.delete_outline, size: 18, color: Colors.redAccent.withOpacity(0.8)),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Remove',
+                            )
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                const SizedBox(height: 8),
+              ],
+
+              // Color picker section
+              Padding(
+                padding: EdgeInsets.only(top: AppTheme.smallPadding),
+                child: Row(
+                  children: [
+                    Text(
+                      "Task Color",
+                      style: TextStyle(
+                        color: AppTheme.secondaryTextColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (selectedColor != null)
+                      TextButton(
+                        onPressed: () { setState(() { _selectedColor = null; }); },
+                        child: const Text('Clear', style: TextStyle(fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._presetColors.map((c) {
+                    final bool isSel = _selectedColor?.value == c.value;
+                    return GestureDetector(
+                      onTap: () { setState(() { _selectedColor = c; }); },
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSel ? Colors.white : Colors.black54,
+                            width: isSel ? 3 : 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 3,
+                              offset: const Offset(0,2),
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+
               // Priority section
               Padding(
                 padding: EdgeInsets.only(top: AppTheme.smallPadding),
