@@ -5,6 +5,27 @@ import 'package:tooodooo_app/util/PriorityIndicator.dart';
 import 'package:tooodooo_app/util/app_icons.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
 
+// Small pure helpers (facilitate testing & reuse)
+String _formatWallClock(DateTime time) => DateFormat('h:mm a').format(time);
+String _formatTimeRange(DateTime start, DateTime end) => '${_formatWallClock(start)} - ${_formatWallClock(end)}';
+String _formatDuration(DateTime start, DateTime end) {
+  final durationMinutes = end.difference(start).inMinutes;
+  final h = durationMinutes ~/ 60;
+  final m = durationMinutes % 60;
+  return h > 0 ? '${h}h${m > 0 ? ' ${m}m' : ''}' : '${m}m';
+}
+String? _remainingUntil(DateTime start, DateTime now) {
+  final remaining = start.difference(now).inMinutes;
+  if (remaining < 0) return null;
+  if (remaining < 60) return 'In $remaining m';
+  if (remaining < 24 * 60) {
+    final rh = remaining ~/ 60;
+    final rm = remaining % 60;
+    return 'In ${rh}h${rm > 0 ? ' ${rm}m' : ''}';
+  }
+  return null;
+}
+
 class TaskCard extends StatelessWidget {
   final CalendarAppointment appointment;
   final bool isCurrentTask;
@@ -31,47 +52,24 @@ class TaskCard extends StatelessWidget {
     required this.onTaskRemoved,
   });
 
-  // Format time as "9:30 AM"
-  String _formatTime(DateTime time) {
-    return DateFormat('h:mm a').format(time);
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Calculate progress for current tasks
+    // Progress for current tasks
     double? progress;
     if (isCurrentTask) {
-      final totalDuration = appointment.endTime.difference(appointment.startTime).inMinutes;
-      final elapsedDuration = DateTime.now().difference(appointment.startTime).inMinutes;
-      progress = totalDuration <= 0 ? 1 : (elapsedDuration / totalDuration).clamp(0.0, 1.0);
-    }
-    
-    // Duration / time strings
-    final durationMinutes = appointment.endTime.difference(appointment.startTime).inMinutes;
-    final hours = durationMinutes ~/ 60;
-    final minutes = durationMinutes % 60;
-    final durationText = hours > 0 
-        ? '${hours}h${minutes > 0 ? ' ${minutes}m' : ''}'
-        : '${minutes}m';
-    final timeRangeText = '${_formatTime(appointment.startTime)} - ${_formatTime(appointment.endTime)}';
-    
-    // Remaining time label for upcoming
-    String? remainingTimeText;
-    if (isUpcomingTask && showRemainingTime) {
-      final remainingMinutes = appointment.startTime.difference(DateTime.now()).inMinutes;
-      if (remainingMinutes >= 0) {
-        if (remainingMinutes < 60) {
-          remainingTimeText = 'In $remainingMinutes m';
-        } else if (remainingMinutes < 24 * 60) {
-          final rh = remainingMinutes ~/ 60;
-            final rm = remainingMinutes % 60;
-            remainingTimeText = 'In ${rh}h${rm > 0 ? ' ${rm}m' : ''}';
-        }
-      }
+      final total = appointment.endTime.difference(appointment.startTime).inMinutes;
+      final elapsed = DateTime.now().difference(appointment.startTime).inMinutes;
+      progress = total <= 0 ? 1 : (elapsed / total).clamp(0.0, 1.0);
     }
 
-    // Visual styling (neutral background + subtle accent border)
-    final priority = (appointment.priority ?? 3).clamp(1,5);
+    final timeRangeText = _formatTimeRange(appointment.startTime, appointment.endTime);
+    final durationText = _formatDuration(appointment.startTime, appointment.endTime);
+    final remainingTimeText = (isUpcomingTask && showRemainingTime)
+        ? _remainingUntil(appointment.startTime, DateTime.now())
+        : null;
+
+    // Visual styling
+    final priority = (appointment.priority ?? 3).clamp(1, 5);
     final customColor = appointment.customColorValue != null ? Color(appointment.customColorValue!) : null;
     final priorityColor = AppTheme.getPriorityColor(priority);
     final baseBg = customColor != null
@@ -81,12 +79,9 @@ class TaskCard extends StatelessWidget {
     final borderColor = Colors.white12;
     final textColor = Colors.white.withOpacity(isCompletedTask ? 0.55 : 0.9);
 
-
-
     final icon = appointment.notes != null ? AppIcons.getIcon(appointment.notes!) : null;
 
-
-      return Padding(
+    return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Ink(
         decoration: BoxDecoration(
@@ -101,7 +96,7 @@ class TaskCard extends StatelessWidget {
               BoxShadow(
                 color: Colors.black.withOpacity(0.25),
                 blurRadius: 4,
-                offset: const Offset(0,2),
+                offset: const Offset(0, 2),
               ),
           ],
         ),
@@ -114,8 +109,8 @@ class TaskCard extends StatelessWidget {
             }
           },
           borderRadius: BorderRadius.circular(AppTheme.borderRadius / 1.3),
-          splashColor: Colors.white24,
-          highlightColor: Colors.white12,
+            splashColor: Colors.white24,
+            highlightColor: Colors.white12,
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Column(
@@ -124,8 +119,9 @@ class TaskCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Status circle
-                    GestureDetector(
+                    _CompletionToggle(
+                      completed: appointment.isCompleted,
+                      borderColor: borderColor,
                       onTap: () {
                         if (appointment.isCompleted) {
                           onTaskIncomplete(appointment);
@@ -133,92 +129,29 @@ class TaskCard extends StatelessWidget {
                           onTaskCompleted(appointment);
                         }
                       },
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: appointment.isCompleted ? Colors.white24 : Colors.transparent,
-                          border: Border.all(
-                            color: appointment.isCompleted ? Colors.white54 : borderColor,
-                            width: 2,
-                          ),
-                        ),
-                        child: appointment.isCompleted
-                            ? const Icon(Icons.check, size: 16, color: Colors.white)
-                            : null,
-                      ),
                     ),
                     const SizedBox(width: 10),
-                    // Title + time
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  appointment.subject,
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    decoration: isCompletedTask ? TextDecoration.lineThrough : null,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (icon != null) ...[
-                                const SizedBox(width: 8),
-                                Icon(icon, size: 20, color: Colors.white70),
-                              ],
-                            ],
+                          _TitleRow(
+                            subject: appointment.subject,
+                            icon: icon,
+                            textColor: textColor,
+                            isCompleted: isCompletedTask,
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.schedule, size: 14, color: textColor.withOpacity(0.8)),
-                              const SizedBox(width: 4),
-                              Text(
-                                timeRangeText,
-                                style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 12),
-                              ),
-                              const SizedBox(width: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white10,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  durationText,
-                                  style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                              if (remainingTimeText != null) ...[
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white24,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    remainingTimeText,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ]
-                            ],
+                          _TimeInfoRow(
+                            timeRangeText: timeRangeText,
+                            durationText: durationText,
+                            remainingTimeText: remainingTimeText,
+                            textColor: textColor,
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Priority bar (horizontal stacked) sized box
                     PriorityIndicator(
                       priority: priority,
                       width: 46,
@@ -229,42 +162,166 @@ class TaskCard extends StatelessWidget {
                       borderColor: Colors.transparent,
                       spacing: 1,
                     ),
-                    // Delete button
                     GestureDetector(
                       onTap: () => onTaskRemoved(appointment),
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 6, top: 2),
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 6, top: 2),
                         child: Icon(Icons.delete_outline, size: 20, color: Colors.white54),
                       ),
                     ),
                   ],
                 ),
-                // Progress indicator for current tasks
-                if (isCurrentTask && progress != null) ...[
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.white12,
-                      color: priorityColor,
-                      minHeight: 6,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'In progress ${(progress * 100).toInt()}%',
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.8),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+                if (isCurrentTask && progress != null)
+                  _ProgressSection(progress: progress, color: priorityColor, textColor: textColor),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CompletionToggle extends StatelessWidget {
+  final bool completed;
+  final Color borderColor;
+  final VoidCallback onTap;
+  const _CompletionToggle({required this.completed, required this.borderColor, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: completed ? Colors.white24 : Colors.transparent,
+          border: Border.all(
+            color: completed ? Colors.white54 : borderColor,
+            width: 2,
+          ),
+        ),
+        child: completed ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+      ),
+    );
+  }
+}
+
+class _TitleRow extends StatelessWidget {
+  final String subject;
+  final IconData? icon;
+  final Color textColor;
+  final bool isCompleted;
+  const _TitleRow({required this.subject, this.icon, required this.textColor, required this.isCompleted});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            subject,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              decoration: isCompleted ? TextDecoration.lineThrough : null,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (icon != null) ...[
+          const SizedBox(width: 8),
+          Icon(icon, size: 20, color: Colors.white70),
+        ],
+      ],
+    );
+  }
+}
+
+class _TimeInfoRow extends StatelessWidget {
+  final String timeRangeText;
+  final String durationText;
+  final String? remainingTimeText;
+  final Color textColor;
+  const _TimeInfoRow({
+    required this.timeRangeText,
+    required this.durationText,
+    required this.remainingTimeText,
+    required this.textColor,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.schedule, size: 14, color: textColor.withOpacity(0.8)),
+        const SizedBox(width: 4),
+        Text(
+          timeRangeText,
+          style: TextStyle(color: textColor.withOpacity(0.8), fontSize: 12),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.white10,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            durationText,
+            style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+        ),
+        if (remainingTimeText != null) ...[
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              remainingTimeText!,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ]
+      ],
+    );
+  }
+}
+
+class _ProgressSection extends StatelessWidget {
+  final double progress;
+  final Color color;
+  final Color textColor;
+  const _ProgressSection({required this.progress, required this.color, required this.textColor});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            backgroundColor: Colors.white12,
+            color: color,
+            minHeight: 6,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'In progress ${(progress * 100).toInt()}%',
+          style: TextStyle(
+            color: textColor.withOpacity(0.8),
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }

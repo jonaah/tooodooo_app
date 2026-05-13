@@ -74,20 +74,22 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
 
   Future<void> _loadCalendarSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final initialHour = prefs.getInt('calendarInitialDisplayHour') ?? 8;
-    final initialMinute = prefs.getInt('calendarInitialDisplayMinute') ?? 0;
+    _startHour = prefs.getInt('calendarStartHour') ?? 6;
+    _endHour = prefs.getInt('calendarEndHour') ?? 24;
+
+    final now = DateTime.now();
+    // Berechne die Mitte des sichtbaren Intervalls
+    final interval = (_endHour - _startHour).toDouble();
+    final middleHour = _startHour + interval / 2;
+    final displayDate = DateTime(
+        now.year, now.month, now.day, now.hour - 2, now.minute);
 
     setState(() {
-      _startHour = prefs.getInt('calendarStartHour') ?? 6;
-      _endHour = prefs.getInt('calendarEndHour') ?? 24;
-
-      final now = _calendarController.displayDate ?? DateTime.now();
-      _calendarController.displayDate = DateTime(now.year, now.month, now.day, initialHour, initialMinute);
-
+      // Setze die displayDate so, dass die aktuelle Zeit mittig ist
+      _calendarController.displayDate = displayDate;
       _calendarKey = UniqueKey();
     });
   }
-
   /// Lädt alle gespeicherten Termine
   Future<void> _loadAppointments() async {
     final appointments = await _appointmentService.loadAppointments();

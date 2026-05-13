@@ -102,11 +102,11 @@ class _ToDoTileState extends State<ToDoTile> {
             decoration: BoxDecoration(
               color: neutralBg,
               borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-              border: Border.all(color: Colors.white12, width: 1),
+              border: Border.all(color: Colors.white12, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 4,
+                  color: Colors.black.withOpacity(0.7),
+                  blurRadius: 1,
                   offset: const Offset(0, 2),
                 ),
               ],

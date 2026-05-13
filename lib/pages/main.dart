@@ -89,6 +89,7 @@ class _MainNavigatorState extends State<MainNavigator> {
             key: _calendarPageKey,
             tasks: _tasks,
             onAppointmentsChanged: handleAppointmentsChanged,
+
           ),
         ],
       ),
