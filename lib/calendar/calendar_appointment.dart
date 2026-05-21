@@ -5,6 +5,7 @@ import 'package:tooodooo_app/util/app_theme.dart';
 /// Modellklasse für einen Kalendereintrag (Termin) - jetzt unveränderlich (immutable)
 class CalendarAppointment {
   final String id; // stabile eindeutige ID
+  final String? googleEventId; // ID des Events in Google Calendar
   final String subject;
   final DateTime startTime;
   final DateTime endTime;
@@ -17,6 +18,7 @@ class CalendarAppointment {
 
   CalendarAppointment({
     String? id,
+    this.googleEventId,
     required this.subject,
     required this.startTime,
     required this.endTime,
@@ -36,6 +38,7 @@ class CalendarAppointment {
   /// Konvertiert das Appointment in eine JSON-Map
   Map<String, dynamic> toJson() => {
         'id': id,
+        'googleEventId': googleEventId,
         'subject': subject,
         'startTime': startTime.millisecondsSinceEpoch,
         'endTime': endTime.millisecondsSinceEpoch,
@@ -62,6 +65,7 @@ class CalendarAppointment {
     final start = DateTime.fromMillisecondsSinceEpoch(json['startTime']);
     return CalendarAppointment(
       id: json['id'],
+      googleEventId: json['googleEventId'],
       subject: json['subject'],
       startTime: start,
       endTime: DateTime.fromMillisecondsSinceEpoch(json['endTime']),
@@ -77,6 +81,7 @@ class CalendarAppointment {
   /// Kopie mit aktualisierten Werten (ID bleibt per Default erhalten)
   CalendarAppointment copyWith({
     String? id,
+    String? googleEventId,
     String? subject,
     DateTime? startTime,
     DateTime? endTime,
@@ -88,6 +93,7 @@ class CalendarAppointment {
     int? customColorValue,
   }) => CalendarAppointment(
         id: id ?? this.id,
+        googleEventId: googleEventId ?? this.googleEventId,
         subject: subject ?? this.subject,
         startTime: startTime ?? this.startTime,
         endTime: endTime ?? this.endTime,
@@ -98,6 +104,18 @@ class CalendarAppointment {
         priority: priority ?? this.priority,
         customColorValue: customColorValue ?? this.customColorValue,
       );
+
+  /// Erstellt eine String-Map für die Google Event Extended Properties
+  Map<String, String> toGoogleExtendedProperties() {
+    return {
+      'tooodooo_id': id,
+      'color': color.value.toString(),
+      'isCompleted': isCompleted.toString(),
+      if (priority != null) 'priority': priority.toString(),
+      if (customColorValue != null) 'customColorValue': customColorValue.toString(),
+      if (notes != null) 'notes': notes!,
+    };
+  }
 
   @override
   bool operator ==(Object other) =>

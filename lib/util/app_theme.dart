@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 // A central place for app theme definitions to avoid magic numbers and hardcoded styles
 class AppTheme {
   // App colors
-  static const Color primaryColor = Color(0xFF5C5552); // Dark gray for app bar
-  static const Color backgroundColor = Color(0xFFF7F0F5); // Background color
+  static const Color primaryColor = Color(0xFF2F2C27); // Dark gray for app bar
+  static const Color backgroundColor = Color(0xFFFFFFFF); // Background color
   static const Color textColor = Color(0xFFE1DCDC); // Light text color
   static const Color secondaryTextColor = Color(0xFFFFF7F7); // Lighter text color for subtitles
   static const Color darkTextColor = Color(0xFF2F3235); // Darker text color for contrast
   static const Color accentColor = Color(0xFF5299D3); // Blue accent instead of amber/yellow
-  static const Color dividerColor = Color(0xFF5299D3); // Divider color (same as accent)
-  static const Color calendarBackgroundColor = Color(0xFFF7F0F5); // Calendar background color
+  static const Color dividerColor = Color(0xFF9657C9); // Divider color (same as accent)
+  static const Color calendarBackgroundColor = Color(0xFFFFFF); // Calendar background color
 
   // Priority colors - Green to Red progression
   static Color getPriorityColor(int priority) {

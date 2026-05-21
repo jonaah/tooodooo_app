@@ -11,28 +11,28 @@ import 'package:tooodooo_app/pages/home_page.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
 import 'package:tooodooo_app/util/app_icons.dart';
 import 'package:tooodooo_app/util/todo_selection_dialog.dart';
+import 'package:googleapis/calendar/v3.dart' as google_calendar;
+
+import '../calendar/google_calendar_client.dart';
 
 class CalendarPage extends StatefulWidget {
   final List<Task>? tasks;
   final Function(String)? onAppointmentsChanged;
 
-  const CalendarPage({
-    super.key, 
-    this.tasks,
-    this.onAppointmentsChanged,
-  });
+  const CalendarPage({super.key, this.tasks, this.onAppointmentsChanged});
 
   @override
   State<CalendarPage> createState() => CalendarPageState();
 }
 
-class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver {
+class CalendarPageState extends State<CalendarPage>
+    with WidgetsBindingObserver {
   late CalendarController _calendarController;
   DateTime _selectedDate = DateTime.now();
 
   // Service für die Datenpersistenz
   final AppointmentService _appointmentService = AppointmentService();
-  
+
   // Controller für die Zoom-Funktionalität
   final CalendarZoomController _zoomController = CalendarZoomController();
 
@@ -56,14 +56,14 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
     _loadAppointments();
     _loadCalendarSettings();
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _calendarController.dispose();
     super.dispose();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -82,7 +82,12 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
     final interval = (_endHour - _startHour).toDouble();
     final middleHour = _startHour + interval / 2;
     final displayDate = DateTime(
-        now.year, now.month, now.day, now.hour - 2, now.minute);
+      now.year,
+      now.month,
+      now.day,
+      now.hour - 2,
+      now.minute,
+    );
 
     setState(() {
       // Setze die displayDate so, dass die aktuelle Zeit mittig ist
@@ -90,6 +95,35 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
       _calendarKey = UniqueKey();
     });
   }
+
+  Future<void> _syncWithGoogleCalendar() async {
+    try {
+      var calendarApi = await GoogleCalendarClient.getCalendarApi();
+      if (calendarApi == null) {
+        // Versuche den Benutzer anzumelden
+        await GoogleCalendarClient.signIn();
+        calendarApi = await GoogleCalendarClient.getCalendarApi();
+      }
+
+      if (calendarApi == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google Anmeldung fehlgeschlagen')),
+        );
+        return;
+      }
+
+      await _loadAppointments();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google Calendar synchronisiert')),
+      );
+    } catch (e) {
+      print('Fehler beim Sync: $e');
+    }
+  }
+
   /// Lädt alle gespeicherten Termine
   Future<void> _loadAppointments() async {
     final appointments = await _appointmentService.loadAppointments();
@@ -98,11 +132,9 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
       _appointments.addAll(appointments);
     });
   }
-  
+
   /// Speichert Termine und benachrichtigt andere Komponenten über Änderungen
-  Future<void> _saveAppointmentsAndNotify() async {
-    await _appointmentService.saveAppointments(_appointments);
-    
+  Future<void> _notifyComponents() async {
     // Benachrichtige andere Komponenten über die Änderung
     if (widget.onAppointmentsChanged != null) {
       widget.onAppointmentsChanged!('refresh');
@@ -110,58 +142,113 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   }
 
   /// Fügt eine Aufgabe dem Kalender hinzu
-  void _addTaskToCalendar(Task task, DateTime startTime) {
+  Future<void> _addTaskToCalendar(Task task, DateTime startTime) async {
     final Duration taskDuration = task.duration ?? const Duration(minutes: 30);
     final endTime = startTime.add(taskDuration);
     if (task.duration == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Standarddauer von 30 Minuten wird verwendet'), duration: Duration(seconds: 2))); }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Standarddauer von 30 Minuten wird verwendet'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    final newAppt = CalendarAppointment(
+      subject: task.name,
+      startTime: startTime,
+      endTime: endTime,
+      color:
+          Colors
+              .grey[800]!, // neutral background base (legacy color field kept)
+      notes: task.iconName,
+      isAllDay: false,
+      priority: task.priority.toInt(),
+      customColorValue: task.colorValue,
+    );
+
     setState(() {
-      _appointments.add(CalendarAppointment(
-        subject: task.name,
-        startTime: startTime,
-        endTime: endTime,
-        color: Colors.grey[800]!, // neutral background base (legacy color field kept)
-        notes: task.iconName,
-        isAllDay: false,
-        priority: task.priority.toInt(),
-        customColorValue: task.colorValue,
-      ));
+      _appointments.add(newAppt);
     });
-    _saveAppointmentsAndNotify();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${task.name} wurde zum Kalender hinzugefügt'), duration: const Duration(seconds: 2)));
+
+    final copy = List<CalendarAppointment>.from(_appointments)..removeLast();
+    final updatedList = await _appointmentService.addAppointment(copy, newAppt);
+
+    if (!mounted) return;
+    setState(() {
+      _appointments.clear();
+      _appointments.addAll(updatedList);
+    });
+
+    _notifyComponents();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${task.name} wurde zum Kalender hinzugefügt'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   /// Erstellt eine neue Aufgabe und fügt sie direkt zum Kalender hinzu
-  void _createAndAddNewTask(
-    String taskName, 
-    double priority, 
-    IconData? taskIcon, 
+  Future<void> _createAndAddNewTask(
+    String taskName,
+    double priority,
+    IconData? taskIcon,
     Duration? taskDuration,
-    DateTime startTime
-  ) {
+    DateTime startTime,
+  ) async {
     final endTime = startTime.add(taskDuration ?? const Duration(minutes: 30));
+    final newAppt = CalendarAppointment(
+      subject: taskName,
+      startTime: startTime,
+      endTime: endTime,
+      color: Colors.grey[800]!,
+      notes: taskIcon != null ? AppIcons.getName(taskIcon) : null,
+      isAllDay: false,
+      priority: priority.toInt(),
+    );
+
     setState(() {
-      _appointments.add(CalendarAppointment(
-        subject: taskName,
-        startTime: startTime,
-        endTime: endTime,
-        color: Colors.grey[800]!,
-        notes: taskIcon != null ? AppIcons.getName(taskIcon) : null,
-        isAllDay: false,
-        priority: priority.toInt(),
-      ));
+      _appointments.add(newAppt);
     });
-    _saveAppointmentsAndNotify();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$taskName wurde zum Kalender hinzugefügt'), duration: const Duration(seconds: 2)));
+
+    final copy = List<CalendarAppointment>.from(_appointments)..removeLast();
+    final updatedList = await _appointmentService.addAppointment(copy, newAppt);
+
+    if (!mounted) return;
+    setState(() {
+      _appointments.clear();
+      _appointments.addAll(updatedList);
+    });
+
+    _notifyComponents();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$taskName wurde zum Kalender hinzugefügt'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   /// Entfernt einen Termin aus dem Kalender
-  void _removeAppointment(CalendarAppointment appointment) {
+  Future<void> _removeAppointment(CalendarAppointment appointment) async {
+    final copy = List<CalendarAppointment>.from(_appointments);
     setState(() {
       _appointments.remove(appointment);
     });
 
-    _saveAppointmentsAndNotify();
+    final updatedList = await _appointmentService.removeAppointment(
+      copy,
+      appointment,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _appointments.clear();
+      _appointments.addAll(updatedList);
+    });
+
+    _notifyComponents();
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -172,22 +259,40 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   }
 
   /// Wechselt den Erledigungsstatus eines Termins
-  void _toggleAppointmentCompletion(CalendarAppointment appointment) {
+  Future<void> _toggleAppointmentCompletion(
+    CalendarAppointment appointment,
+  ) async {
     final index = _appointments.indexOf(appointment);
     if (index != -1) {
+      final oldList = List<CalendarAppointment>.from(_appointments);
+      final updatedAppt = appointment.copyWith(
+        isCompleted: !appointment.isCompleted,
+      );
+
       setState(() {
-        _appointments[index] = appointment.copyWith(
-          isCompleted: !appointment.isCompleted
-        );
+        _appointments[index] = updatedAppt;
       });
-      
-      _saveAppointmentsAndNotify();
-      
+
+      final updatedList = await _appointmentService.toggleAppointmentCompletion(
+        oldList,
+        appointment,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _appointments.clear();
+        _appointments.addAll(updatedList);
+      });
+
+      _notifyComponents();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(appointment.isCompleted 
-            ? 'Aufgabe wurde als unerledigt markiert'
-            : 'Aufgabe wurde als erledigt markiert'),
+          content: Text(
+            appointment.isCompleted
+                ? 'Aufgabe wurde als unerledigt markiert'
+                : 'Aufgabe wurde als erledigt markiert',
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -198,16 +303,23 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   void _showTaskSelectionDialog(DateTime selectedDateTime) {
     showDialog(
       context: context,
-      builder: (context) => TodoSelectionDialog(
-        tasks: widget.tasks ?? [],
-        selectedDateTime: selectedDateTime,
-        onTaskSelected: (task) {
-          _addTaskToCalendar(task, selectedDateTime);
-        },
-        onNewTaskCreated: (taskName, priority, icon, duration) {
-          _createAndAddNewTask(taskName, priority, icon, duration, selectedDateTime);
-        },
-      ),
+      builder:
+          (context) => TodoSelectionDialog(
+            tasks: widget.tasks ?? [],
+            selectedDateTime: selectedDateTime,
+            onTaskSelected: (task) {
+              _addTaskToCalendar(task, selectedDateTime);
+            },
+            onNewTaskCreated: (taskName, priority, icon, duration) {
+              _createAndAddNewTask(
+                taskName,
+                priority,
+                icon,
+                duration,
+                selectedDateTime,
+              );
+            },
+          ),
     );
   }
 
@@ -215,40 +327,56 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
   void _showAppointmentOptions(CalendarAppointment appointment) {
     showDialog(
       context: context,
-      builder: (context) => CalendarEditDialog(
-        appointment: appointment,
-        onSave: (updatedAppointment) {
-          // Finde den Index des aktuellen Termins
-          final index = _appointments.indexOf(appointment);
-          if (index != -1) {
-            setState(() {
-              // Ersetze den Termin durch den aktualisierten
-              _appointments[index] = updatedAppointment;
-            });
-            
-            _saveAppointmentsAndNotify();
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Termin wurde aktualisiert'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-          Navigator.pop(context);
-        },
-        onDelete: () {
-          _removeAppointment(appointment);
-          Navigator.pop(context);
-        },
-        onToggleCompletion: (updatedAppointment) {
-          _toggleAppointmentCompletion(updatedAppointment);
-          Navigator.pop(context);
-        },
-        onCancel: () {
-          Navigator.pop(context);
-        },
-      ),
+      builder:
+          (context) => CalendarEditDialog(
+            appointment: appointment,
+            onSave: (updatedAppointment) async {
+              Navigator.pop(context);
+              // Finde den Index des aktuellen Termins
+              final index = _appointments.indexOf(appointment);
+              if (index != -1) {
+                final copy = List<CalendarAppointment>.from(_appointments);
+
+                setState(() {
+                  // Ersetze den Termin durch den aktualisierten
+                  _appointments[index] = updatedAppointment;
+                });
+
+                final updatedList = await _appointmentService.updateAppointment(
+                  copy,
+                  appointment,
+                  updatedAppointment,
+                );
+
+                if (mounted) {
+                  setState(() {
+                    _appointments.clear();
+                    _appointments.addAll(updatedList);
+                  });
+
+                  _notifyComponents();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Termin wurde aktualisiert'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+            onDelete: () {
+              Navigator.pop(context);
+              _removeAppointment(appointment);
+            },
+            onToggleCompletion: (updatedAppointment) {
+              Navigator.pop(context);
+              _toggleAppointmentCompletion(updatedAppointment);
+            },
+            onCancel: () {
+              Navigator.pop(context);
+            },
+          ),
     );
   }
 
@@ -262,7 +390,8 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
 
     // Prüfe, ob die Zeit zwischen Tipps weniger als 300ms beträgt
     // und ob die getippte Position (Datum+Zeit) dieselbe ist
-    final bool isDoubleTap = currentTapTime.difference(_lastTapTime!).inMilliseconds < 300 &&
+    final bool isDoubleTap =
+        currentTapTime.difference(_lastTapTime!).inMilliseconds < 300 &&
         _isSameTimeSlot(cellDate, _lastTapPosition!);
 
     // Setze Tracking zurück für die nächste Tippsequenz
@@ -280,48 +409,64 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
         date1.hour == date2.hour &&
         (date1.minute ~/ 15) == (date2.minute ~/ 15);
   }
-  
+
   /// Zeigt Hilfe-Informationen an
   void _showHelpDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.backgroundColor,
-        title: Text('Kalender Hilfe', 
-          style: TextStyle(color: AppTheme.darkTextColor, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('• Doppeltippen Sie auf einen Zeitslot, um eine Aufgabe hinzuzufügen',
-              style: TextStyle(color: AppTheme.darkTextColor),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppTheme.backgroundColor,
+            title: Text(
+              'Kalender Hilfe',
+              style: TextStyle(
+                color: AppTheme.darkTextColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 8),
-            Text('• Tippen Sie auf einen Termin, um Details anzuzeigen oder ihn zu entfernen',
-              style: TextStyle(color: AppTheme.darkTextColor),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '• Doppeltippen Sie auf einen Zeitslot, um eine Aufgabe hinzuzufügen',
+                  style: TextStyle(color: AppTheme.darkTextColor),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '• Tippen Sie auf einen Termin, um Details anzuzeigen oder ihn zu entfernen',
+                  style: TextStyle(color: AppTheme.darkTextColor),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '• Aufgaben ohne Dauer erhalten eine Standarddauer von 30 Minuten',
+                  style: TextStyle(color: AppTheme.darkTextColor),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '• Verwenden Sie Pinch-Gesten zum Vergrößern/Verkleinern der Zeitansicht',
+                  style: TextStyle(color: AppTheme.darkTextColor),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '• Zeitintervalle passen sich je nach Zoom-Stufe an (5min bis 1h)',
+                  style: TextStyle(color: AppTheme.darkTextColor),
+                ),
+              ],
             ),
-            SizedBox(height: 8),
-            Text('• Aufgaben ohne Dauer erhalten eine Standarddauer von 30 Minuten',
-              style: TextStyle(color: AppTheme.darkTextColor),
-            ),
-            SizedBox(height: 8),
-            Text('• Verwenden Sie Pinch-Gesten zum Vergrößern/Verkleinern der Zeitansicht',
-              style: TextStyle(color: AppTheme.darkTextColor),
-            ),
-            SizedBox(height: 8),
-            Text('• Zeitintervalle passen sich je nach Zoom-Stufe an (5min bis 1h)',
-              style: TextStyle(color: AppTheme.darkTextColor),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            child: Text('Verstanden', style: TextStyle(color: AppTheme.secondaryTextColor,fontWeight: FontWeight.bold)),
-            onPressed: () => Navigator.pop(context),
+            actions: [
+              TextButton(
+                child: Text(
+                  'Verstanden',
+                  style: TextStyle(
+                    color: AppTheme.secondaryTextColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -368,9 +513,9 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAppointments,
-            tooltip: 'Kalender aktualisieren',
+            icon: const Icon(Icons.sync),
+            onPressed: _syncWithGoogleCalendar,
+            tooltip: 'Mit Google Calendar synchronisieren',
           ),
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -434,8 +579,11 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                   onTap: _handleCalendarTap,
                   timeSlotViewSettings: TimeSlotViewSettings(
                     timeFormat: 'HH:mm',
-                    timeInterval: Duration(minutes: _zoomController.currentMinutesInterval),
-                    timeIntervalHeight: _zoomController.timeIntervalHeight * 0.7,
+                    timeInterval: Duration(
+                      minutes: _zoomController.currentMinutesInterval,
+                    ),
+                    timeIntervalHeight:
+                        _zoomController.timeIntervalHeight * 0.7,
                     startHour: _startHour.toDouble(),
                     endHour: _endHour.toDouble(),
                     timeTextStyle: TextStyle(
@@ -454,7 +602,8 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                   viewHeaderStyle: const ViewHeaderStyle(
                     dayTextStyle: TextStyle(
                       color: AppTheme.darkTextColor,
-                      fontSize: 12,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
                     dateTextStyle: TextStyle(
                       color: AppTheme.darkTextColor,
@@ -462,32 +611,43 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  cellBorderColor: Colors.grey.shade700,
+                  cellBorderColor: Colors.black,
                   backgroundColor: AppTheme.calendarBackgroundColor,
-                  todayHighlightColor: Colors.white,
+                  todayHighlightColor: AppTheme.accentColor,
                   selectionDecoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 3,
+                    border: Border.all(color: AppTheme.dividerColor, width: 3),
+                    borderRadius: BorderRadius.circular(
+                      AppTheme.borderRadius / 3,
                     ),
-                    borderRadius: BorderRadius.circular(AppTheme.borderRadius / 3),
                   ),
                   appointmentBuilder: (context, calendarAppointmentDetails) {
-                    final appointment = calendarAppointmentDetails.appointments.first as CalendarAppointment;
-                    final prio = (appointment.priority ?? 3).clamp(1,5);
+                    final appointment =
+                        calendarAppointmentDetails.appointments.first
+                            as CalendarAppointment;
+                    final prio = (appointment.priority ?? 3).clamp(1, 5);
                     // Determine display color preference: custom color > priority color > stored color
-                    final displayColor = appointment.customColorValue != null
-                        ? Color(appointment.customColorValue!)
-                        : AppTheme.getCalendarTaskColor(prio);
-                    final icon = appointment.notes != null ? AppIcons.getIcon(appointment.notes!) : null;
+                    final displayColor =
+                        appointment.customColorValue != null
+                            ? Color(appointment.customColorValue!)
+                            : AppTheme.getCalendarTaskColor(prio);
+                    final icon =
+                        appointment.notes != null
+                            ? AppIcons.getIcon(appointment.notes!)
+                            : null;
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: displayColor.withOpacity(0.85),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black26, width: 1),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 1,
+                        vertical: 1,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: displayColor.withOpacity(1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.black26, width: 2),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -516,15 +676,15 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
                 ),
               ),
             ),
-          )
+          ),
         );
       },
     );
   }
-  
+
   /// Behandelt Tipp-Ereignisse auf dem Kalender
   void _handleCalendarTap(CalendarTapDetails details) {
-    if (details.targetElement == CalendarElement.calendarCell && 
+    if (details.targetElement == CalendarElement.calendarCell &&
         details.date != null) {
       setState(() {
         _selectedDate = details.date!;
@@ -543,7 +703,9 @@ class CalendarPageState extends State<CalendarPage> with WidgetsBindingObserver 
         details.appointments != null &&
         details.appointments!.isNotEmpty) {
       // Wenn ein Termin angetippt wird, zeige Optionen an
-      _showAppointmentOptions(details.appointments!.first as CalendarAppointment);
+      _showAppointmentOptions(
+        details.appointments!.first as CalendarAppointment,
+      );
     }
   }
 }
