@@ -64,14 +64,14 @@ class AppointmentDataSource extends CalendarDataSource {
     return object;
   }
   
-  @override
+
   TextStyle getTextStyle(int index) {
     final CalendarAppointment appointment = appointments![index] as CalendarAppointment;
     // Durchgestrichener Text für erledigte Aufgaben
     if (appointment.isCompleted) {
       return TextStyle(
         decoration: TextDecoration.lineThrough,
-        color: Colors.white.withOpacity(0.7),
+        color: Colors.white.withOpacity(1),
         fontSize: 12,
         fontWeight: FontWeight.w500,
       );
@@ -83,7 +83,6 @@ class AppointmentDataSource extends CalendarDataSource {
     );
   }
   
-  @override
   Widget buildAppointmentWidget(
       BuildContext context, CalendarAppointmentDetails details) {
     final CalendarAppointment appointment = details.appointments.first as CalendarAppointment;

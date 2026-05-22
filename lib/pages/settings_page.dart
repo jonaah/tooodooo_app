@@ -14,7 +14,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  TimeOfDay _startTime = const TimeOfDay(hour: 6, minute: 0);
+  TimeOfDay _startTime = const TimeOfDay(hour: 0, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 0, minute: 0);
   TimeOfDay _initialDisplayTime = const TimeOfDay(hour: 8, minute: 0);
   bool _isEndTimeMidnight = true;
@@ -208,7 +208,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final endHour = prefs.getInt('calendarEndHour') ?? 24;
     setState(() {
       _startTime = TimeOfDay(
-        hour: prefs.getInt('calendarStartHour') ?? 6,
+        hour: prefs.getInt('calendarStartHour') ?? 0,
         minute: prefs.getInt('calendarStartMinute') ?? 0,
       );
       _isEndTimeMidnight = endHour == 24;

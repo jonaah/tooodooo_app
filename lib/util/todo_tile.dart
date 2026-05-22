@@ -101,14 +101,18 @@ class _ToDoTileState extends State<ToDoTile> {
             padding: EdgeInsets.all(AppTheme.defaultPadding),
             decoration: BoxDecoration(
               color: neutralBg,
-              borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-              border: Border.all(color: Colors.white12, width: 3),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadius / 1.3),
+              border: Border.all(
+                color: Colors.white12.withOpacity(widget.taskCompleted ? 0.3 : 0.7),
+                width: 1.2,
+              ),
               boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.7),
-                  blurRadius: 1,
-                  offset: const Offset(0, 2),
-                ),
+                if (!widget.taskCompleted)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.7),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
               ],
             ),
             child: Column(

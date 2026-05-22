@@ -11,7 +11,7 @@ class CalendarZoomController {
   /// Maximale Höhe eines Zeitintervalls beim Zoomen
   static const double maxTimeIntervalHeight = 80;
   
-  /// Aktuelles Zeitintervall in Minuten (5, 10, 15, 30 oder 60)
+  /// Aktuelles Zeitintervall in Minuten (30 oder 60)
   int _currentMinutesInterval = 15;
   
   /// Getter für aktuelle Zeitintervallhöhe
@@ -22,9 +22,7 @@ class CalendarZoomController {
   
   /// Ermittelt das passende Zeitintervall für eine bestimmte Zoom-Höhe
   int _getTimeIntervalForHeight(double height) {
-    if (height >= 70) return 5;
-    if (height >= 60) return 10;
-    if (height >= 50) return 15;
+    // Liefert fast immer 30 Min oder 60 Min, um Text auf dem Bildschirm zu minimieren.
     if (height >= 40) return 30;
     return 60;
   }

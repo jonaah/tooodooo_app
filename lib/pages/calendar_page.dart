@@ -43,7 +43,7 @@ class CalendarPageState extends State<CalendarPage>
   DateTime? _lastTapTime;
   DateTime? _lastTapPosition;
 
-  int _startHour = 6;
+  int _startHour = 0;
   int _endHour = 24;
   Key _calendarKey = UniqueKey();
 
@@ -74,7 +74,7 @@ class CalendarPageState extends State<CalendarPage>
 
   Future<void> _loadCalendarSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _startHour = prefs.getInt('calendarStartHour') ?? 6;
+    _startHour = prefs.getInt('calendarStartHour') ?? 0;
     _endHour = prefs.getInt('calendarEndHour') ?? 24;
 
     final now = DateTime.now();
@@ -583,7 +583,7 @@ class CalendarPageState extends State<CalendarPage>
                       minutes: _zoomController.currentMinutesInterval,
                     ),
                     timeIntervalHeight:
-                        _zoomController.timeIntervalHeight * 0.7,
+                        _zoomController.timeIntervalHeight * 0.6,
                     startHour: _startHour.toDouble(),
                     endHour: _endHour.toDouble(),
                     timeTextStyle: TextStyle(
@@ -611,13 +611,13 @@ class CalendarPageState extends State<CalendarPage>
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  cellBorderColor: Colors.black,
-                  backgroundColor: AppTheme.calendarBackgroundColor,
+                  cellBorderColor: Colors.black.withOpacity(0.1),
+                  backgroundColor: Colors.white,
                   todayHighlightColor: AppTheme.accentColor,
                   selectionDecoration: BoxDecoration(
-                    border: Border.all(color: AppTheme.dividerColor, width: 3),
+                    border: Border.all(color: AppTheme.dividerColor, width: 1),
                     borderRadius: BorderRadius.circular(
-                      AppTheme.borderRadius / 3,
+                      2
                     ),
                   ),
                   appointmentBuilder: (context, calendarAppointmentDetails) {
@@ -625,11 +625,11 @@ class CalendarPageState extends State<CalendarPage>
                         calendarAppointmentDetails.appointments.first
                             as CalendarAppointment;
                     final prio = (appointment.priority ?? 3).clamp(1, 5);
-                    // Determine display color preference: custom color > priority color > stored color
-                    final displayColor =
-                        appointment.customColorValue != null
-                            ? Color(appointment.customColorValue!)
-                            : AppTheme.getCalendarTaskColor(prio);
+                    
+                    final bgColor = appointment.customColorValue != null
+                        ? Color(appointment.customColorValue!).withOpacity(0.25)
+                        : Colors.grey[800]!.withOpacity(0.25);
+                        
                     final icon =
                         appointment.notes != null
                             ? AppIcons.getIcon(appointment.notes!)
@@ -639,36 +639,65 @@ class CalendarPageState extends State<CalendarPage>
                         horizontal: 1,
                         vertical: 1,
                       ),
+                      clipBehavior: Clip.hardEdge,
                       decoration: BoxDecoration(
-                        color: displayColor.withOpacity(1),
+                        color: bgColor,
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.black26, width: 2),
+                        border: Border.all(
+                          color: Colors.white12.withOpacity(appointment.isCompleted ? 0.3 : 0.7),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          if (!appointment.isCompleted)
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.7),
+                              blurRadius: 2,
+                              offset: const Offset(0, 2),
+                            ),
+                        ]
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-
+                      child: Row(
                         children: [
-                          Expanded(
-                            child: Text(
-                              appointment.subject,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                          Container(
+                            width: 4,
+                            decoration: BoxDecoration(
+                              color: AppTheme.getPriorityColor(prio).withValues(alpha: 1.0),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(3),
+                                bottomLeft: Radius.circular(3),
                               ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (icon != null) ...[
-                            Icon(icon, size: 14, color: Colors.white),
-                            const SizedBox(width: 4),
-                          ],
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      appointment.subject,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (icon != null) ...[
+                                    Icon(icon, size: 14, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     );

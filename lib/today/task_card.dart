@@ -74,8 +74,8 @@ class TaskCard extends StatelessWidget {
     final priorityColor = AppTheme.getPriorityColor(priority);
     final baseBg = customColor != null
         ? customColor.withOpacity(0.25)
-        : Colors.grey[800]?.withOpacity(0.15);
-    final cardBg = baseBg?.withOpacity(isCompletedTask ? 0.4 : 0.7);
+        : Colors.grey[800]!.withOpacity(0.25);
+    final cardBg = baseBg;
     final borderColor = Colors.white12;
     final textColor = Colors.white.withOpacity(isCompletedTask ? 0.55 : 0.9);
 
@@ -94,7 +94,7 @@ class TaskCard extends StatelessWidget {
           boxShadow: [
             if (!isCompletedTask)
               BoxShadow(
-                color: Colors.black.withOpacity(0.25),
+                color: Colors.black.withOpacity(0.7),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),

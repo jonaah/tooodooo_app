@@ -10,7 +10,7 @@ class AppTheme {
   static const Color darkTextColor = Color(0xFF2F3235); // Darker text color for contrast
   static const Color accentColor = Color(0xFF5299D3); // Blue accent instead of amber/yellow
   static const Color dividerColor = Color(0xFF9657C9); // Divider color (same as accent)
-  static const Color calendarBackgroundColor = Color(0xFFFFFF); // Calendar background color
+  static const Color calendarBackgroundColor = Color(0xFFFFFFFF); // Calendar background color
 
   // Priority colors - Green to Red progression
   static Color getPriorityColor(int priority) {
