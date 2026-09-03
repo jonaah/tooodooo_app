@@ -42,6 +42,12 @@ class TodayTasksService {
   /// Save appointments (delegates to AppointmentService)
   Future<bool> saveAppointments(List<CalendarAppointment> appointments) => _appointmentService.saveAppointments(appointments);
 
+  /// Remove appointment (delegates to AppointmentService)
+  Future<List<CalendarAppointment>> removeAppointment(List<CalendarAppointment> currentAppointments, CalendarAppointment appointment) => _appointmentService.removeAppointment(currentAppointments, appointment);
+
+  /// Update appointment (delegates to AppointmentService)
+  Future<List<CalendarAppointment>> updateAppointment(List<CalendarAppointment> currentAppointments, CalendarAppointment oldAppointment, CalendarAppointment newAppointment) => _appointmentService.updateAppointment(currentAppointments, oldAppointment, newAppointment);
+
   /// Get appointments for a specific date
   List<CalendarAppointment> getAppointmentsForDate(
     List<CalendarAppointment> allAppointments, 

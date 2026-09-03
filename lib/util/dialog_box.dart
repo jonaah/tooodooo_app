@@ -55,6 +55,7 @@ class DialogBoxState extends State<DialogBox> {
   Color? _selectedColor; // renamed internal storage
   Color? get selectedColor => _selectedColor; // public getter expected by callers
   Color? get selectedColorValue => _selectedColor; // legacy public getter
+  double? _dialogHeight;
 
   // Preset palette
   static const List<Color> _presetColors = [
@@ -174,418 +175,550 @@ class DialogBoxState extends State<DialogBox> {
     final bool hasSecondRow = displayIcons.length > 5;
     final int secondRowCount = hasSecondRow ? displayIcons.length - 5 : 0;
 
-    return Dialog.fullscreen(
-      backgroundColor: AppTheme.primaryColor,
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(AppTheme.defaultPadding),
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double minHeight = screenHeight * 0.45;
+    final double maxHeight = screenHeight * 0.94;
+    _dialogHeight ??= screenHeight * 0.80;
+    final double currentHeight = _dialogHeight!.clamp(minHeight, maxHeight);
+
+    return Dialog(
+      insetPadding: EdgeInsets.zero,
+      alignment: Alignment.bottomCenter,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        height: currentHeight,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.45),
+              blurRadius: 30,
+              spreadRadius: 4,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const SizedBox(width: 48), // Spacer to balance the IconButton width
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                    widget.isEditing ? "Edit Task" : "Add Task",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.secondaryTextColor,
-                      fontSize: 24,
-                    ),
-                  ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: AppTheme.secondaryTextColor),
-                    onPressed: widget.onCancel,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Task input field
-              TextField(
-                controller: widget.controller,
-                style: TextStyle(color: AppTheme.backgroundColor),
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    borderSide: BorderSide(color: Colors.grey[600]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    borderSide: BorderSide(color: AppTheme.secondaryTextColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(AppTheme.borderRadius)),
-                    borderSide: BorderSide(color: AppTheme.accentColor, width: 3),
-                  ),
-                  hintText: 'Enter Task',
-                  hintStyle: TextStyle(color: AppTheme.textColor.withOpacity(0.8)),
-                  filled: true,
-                  fillColor: Colors.grey[800],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Remainder of the form
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
+              // Resizable Drag Handle & Header
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragUpdate: (details) {
+                  setState(() {
+                    _dialogHeight = (_dialogHeight! - details.delta.dy).clamp(minHeight, maxHeight);
+                  });
+                },
+                onVerticalDragEnd: (details) {
+                  if (details.primaryVelocity != null && details.primaryVelocity! > 600) {
+                    widget.onCancel();
+                  }
+                },
+                child: Column(
                   children: [
-                    // Group toggle
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Group Task",
-                          style: TextStyle(color: AppTheme.secondaryTextColor, fontWeight: FontWeight.w600),
+                    // Modern Drag Handle
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 10, bottom: 6),
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryTextColor.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(2.5),
                         ),
-                        Switch(
-                          value: _isGroup,
-                          activeColor: AppTheme.accentColor,
-                          onChanged: (val) {
-                            setState(() { _isGroup = val; });
-                          },
-                        ),
-                      ],
+                      ),
                     ),
 
-                    if (_isGroup) ...[
-                      // Subtasks input
-                      Row(
+                    // Header
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppTheme.defaultPadding,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          // Close button on the LEFT
+                          SizedBox(
+                            width: 68,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: IconButton(
+                                icon: Icon(Icons.close, color: AppTheme.secondaryTextColor),
+                                onPressed: widget.onCancel,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Close',
+                              ),
+                            ),
+                          ),
+
+                          // Centered Title
                           Expanded(
-                            child: TextField(
-                              controller: _subtaskController,
-                              style: TextStyle(color: AppTheme.secondaryTextColor),
-                              decoration: InputDecoration(
-                                hintText: 'Add item',
-                                hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
-                                filled: true,
-                                fillColor: Colors.grey[800],
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey[600]!),
-                                ),
-                              ),
-                              onSubmitted: (_) => _addSubtask(),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: _addSubtask,
-                            icon: Icon(Icons.add_circle, color: AppTheme.accentColor),
-                            tooltip: 'Add subtask',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      // Subtasks list
-                      if (_subtasks.isEmpty)
-                        Text(
-                          'No items yet',
-                          style: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6)),
-                        )
-                      else
-                        Column(
-                          children: List.generate(_subtasks.length, (i) {
-                            final sub = _subtasks[i];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[850],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  GestureDetector(
-                                    onTap: () => _toggleSubtask(i),
-                                    child: Container(
-                                      width: 22,
-                                      height: 22,
-                                      decoration: BoxDecoration(
-                                        color: sub['completed'] == true ? AppTheme.accentColor.withOpacity(0.8) : Colors.transparent,
-                                        border: Border.all(color: AppTheme.secondaryTextColor, width: 1.5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: sub['completed'] == true
-                                          ? const Icon(Icons.check, size: 16, color: Colors.white)
-                                          : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      sub['name'] ?? '',
-                                      style: TextStyle(
-                                        color: AppTheme.secondaryTextColor.withOpacity(sub['completed'] == true ? 0.5 : 0.9),
-                                        decoration: sub['completed'] == true ? TextDecoration.lineThrough : null,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () => _deleteSubtask(i),
-                                    icon: Icon(Icons.delete_outline, size: 18, color: Colors.redAccent.withOpacity(0.8)),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    tooltip: 'Remove',
-                                  )
-                                ],
-                              ),
-                            );
-                          }),
-                        ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Color picker section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Task Color",
-                          style: TextStyle(
-                            color: AppTheme.secondaryTextColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (selectedColor != null) ...[
-                          const SizedBox(width: 16),
-                          TextButton(
-                            onPressed: () { setState(() { _selectedColor = null; }); },
-                            child: const Text('Clear', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ..._presetColors.map((c) {
-                          final bool isSel = _selectedColor?.value == c.value;
-                          return GestureDetector(
-                            onTap: () { setState(() { _selectedColor = c; }); },
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: c,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSel ? Colors.white : Colors.black54,
-                                  width: isSel ? 3 : 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.25),
-                                    blurRadius: 3,
-                                    offset: const Offset(0,2),
-                                  )
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-                    Divider(color: AppTheme.secondaryTextColor.withOpacity(0.8), thickness: 1),
-
-
-                    // Priority section
-                    Center(
-                      child: Text(
-                        "Priority Level",
-                        style: TextStyle(
-                          color: AppTheme.secondaryTextColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    SliderElement(key: widget.sliderKey),
-
-                    const SizedBox(height: 16),
-                    Divider(color: AppTheme.secondaryTextColor.withOpacity(0.8), thickness: 1),
-
-
-                    // Task icon section
-                    Center(
-                      child: Text(
-                        "Task Icon",
-                        style: TextStyle(
-                          color: AppTheme.secondaryTextColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // First row of icons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: displayIcons.take(firstRowCount).map((icon) {
-                        final isSelected = _selectedIcon == icon;
-                        return GestureDetector(
-                          onTap: () => _handleIconTap(icon),
-                          child: Container(
-                            padding: EdgeInsets.all(AppTheme.smallPadding),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : Colors.grey[800],
-                              borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              icon,
-                              color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
-                              size: AppTheme.iconSize,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-
-                    // Second row of icons (if needed)
-                    if (hasSecondRow) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: displayIcons.sublist(5, 5 + secondRowCount).map((icon) {
-                          final isSelected = _selectedIcon == icon;
-                          return GestureDetector(
-                            onTap: () => _handleIconTap(icon),
-                            child: Container(
-                              padding: EdgeInsets.all(AppTheme.smallPadding),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppTheme.accentColor : Colors.grey[800],
-                                borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 2,
-                                    offset: const Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                icon,
-                                color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
-                                size: AppTheme.iconSize,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-
-                    // More icons button
-                    Align(
-                      alignment: Alignment.center,
-                      child: TextButton(
-                        onPressed: _openEmojiPicker,
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.accentColor.withOpacity(0.1),
-                          backgroundColor: Colors.grey[800],
-                          padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                          ),
-                        ),
-                        child: Text(
-                          "More Icons",
-                          style: TextStyle(
-                            color: AppTheme.secondaryTextColor,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Duration section
-                    Center(
-                      child: Text(
-                        "Duration",
-                        style: TextStyle(
-                          color: AppTheme.secondaryTextColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Duration picker button
-                    Align(
-                      alignment: Alignment.center,
-                      child: InkWell(
-                        onTap: _openDurationPicker,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[800],
-                            borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
-                            border: Border.all(color: AppTheme.secondaryTextColor),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.timer, size: AppTheme.iconSize, color: AppTheme.secondaryTextColor),
-                              SizedBox(width: AppTheme.smallPadding),
-                              Text(
-                                formattedDuration(),
+                            child: Center(
+                              child: Text(
+                                widget.isEditing ? "Edit Task" : "New Task",
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.bold,
                                   color: AppTheme.secondaryTextColor,
+                                  fontSize: 20,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
+
+                          // Save button on the RIGHT (where close used to be)
+                          SizedBox(
+                            width: 68,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: ElevatedButton(
+                                onPressed: widget.onSave,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.accentColor,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: const Text(
+                                  "Save",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Divider(color: AppTheme.dividerColor, thickness: 2),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              // Form
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    const SizedBox(height: 16),
 
-              // Save button at the bottom
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.accentColor.withOpacity(0.7),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.borderRadius),
+                    // Task input field
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding),
+                      child: TextField(
+                        controller: widget.controller,
+                        style: TextStyle(color: AppTheme.textColor),
+                        textAlign: TextAlign.start,
+                        decoration: InputDecoration(
+                          hintText: 'Task Name',
+                          hintStyle: TextStyle(color: AppTheme.textColor, fontSize: 20),
+                          filled: true,
+                          fillColor: AppTheme.primaryColor,
+                        ),
+                      ),
                     ),
-                  ),
-                  onPressed: widget.onSave,
-                  child: const Text("Save Task", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+                    const SizedBox(height: 16),
+
+                    // Group toggle
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Group Task",
+                            style: TextStyle(color: AppTheme.secondaryTextColor, fontWeight: FontWeight.w600),
+                          ),
+                          Checkbox(
+                            value: _isGroup,
+                            onChanged: (val) {
+                            setState(() { _isGroup = val!; });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    if (_isGroup) ...[
+                      // Subtasks input
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: AppTheme.largePadding),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _subtaskController,
+                                style: TextStyle(color: AppTheme.secondaryTextColor),
+                                decoration: InputDecoration(
+                                  hintText: 'Add item',
+                                  hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                                  filled: true,
+                                  fillColor: AppTheme.backgroundColor,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: BorderSide(color: Colors.grey[600]!),
+                                  ),
+                                ),
+                                onSubmitted: (_) => _addSubtask(),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: _addSubtask,
+                              icon: Icon(Icons.add_circle, color: AppTheme.accentColor),
+                              tooltip: 'Add subtask',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // Subtasks list
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: AppTheme.largePadding),
+                        child: _subtasks.isEmpty
+                            ? Text(
+                                'No items yet',
+                                style: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.6)),
+                              )
+                            : Column(
+                                children: List.generate(_subtasks.length, (i) {
+                                  final sub = _subtasks[i];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            height: 48,
+                                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.darkTextColor,
+                                              border: Border.all(color: AppTheme.dividerColor),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: () => _toggleSubtask(i),
+                                                  child: Container(
+                                                    width: 22,
+                                                    height: 22,
+                                                    decoration: BoxDecoration(
+                                                      color: sub['completed'] == true ? AppTheme.accentColor.withOpacity(0.8) : Colors.transparent,
+                                                      border: Border.all(color: AppTheme.secondaryTextColor, width: 1.5),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: sub['completed'] == true
+                                                        ? const Icon(Icons.check, size: 16, color: Colors.white)
+                                                        : null,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    sub['name'] ?? '',
+                                                    style: TextStyle(
+                                                      color: AppTheme.secondaryTextColor.withOpacity(sub['completed'] == true ? 0.5 : 0.9),
+                                                      decoration: sub['completed'] == true ? TextDecoration.lineThrough : null,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          onPressed: () => _deleteSubtask(i),
+                                          icon: Icon(Icons.delete_outline, color: Colors.redAccent.withOpacity(0.8)),
+                                          tooltip: 'Remove',
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              ),
+
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    Divider(color: AppTheme.dividerColor, thickness: 2),
+                    const SizedBox(height: 8),
+
+
+
+                    // Color picker section
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Task Color",
+                                style: TextStyle(
+                                  color: AppTheme.secondaryTextColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (selectedColor != null) ...[
+                                const SizedBox(width: 16),
+                                TextButton(
+                                  onPressed: () { setState(() { _selectedColor = null; }); },
+                                  child: const Text('Clear', style: TextStyle(fontSize: 12)),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Center(
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ..._presetColors.map((c) {
+                                  final bool isSel = _selectedColor?.value == c.value;
+                                  return GestureDetector(
+                                    onTap: () { setState(() { _selectedColor = c; }); },
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: c,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isSel ? Colors.white : Colors.black54,
+                                          width: isSel ? 3 : 1.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.25),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 2),
+                                          )
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    Divider(color: AppTheme.dividerColor, thickness: 2),
+                    const SizedBox(height: 8),
+
+
+
+                    // Priority section
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Priority Level",
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SliderElement(key: widget.sliderKey),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    Divider(color: AppTheme.dividerColor, thickness: 2),
+                    const SizedBox(height: 8),
+
+
+
+                    // Task icon section
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Task Icon",
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // First row of icons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: displayIcons.take(firstRowCount).map((icon) {
+                              final isSelected = _selectedIcon == icon;
+                              return GestureDetector(
+                                onTap: () => _handleIconTap(icon),
+                                child: Container(
+                                  padding: EdgeInsets.all(AppTheme.smallPadding),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : Colors.grey[800],
+                                    borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
+                                    size: AppTheme.iconSize,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          // Second row of icons (if needed)
+                          if (hasSecondRow) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: displayIcons.sublist(5, 5 + secondRowCount).map((icon) {
+                                final isSelected = _selectedIcon == icon;
+                                return GestureDetector(
+                                  onTap: () => _handleIconTap(icon),
+                                  child: Container(
+                                    padding: EdgeInsets.all(AppTheme.smallPadding),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? AppTheme.accentColor : Colors.grey[800],
+                                      borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      icon,
+                                      color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
+                                      size: AppTheme.iconSize,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                          const SizedBox(height: 8),
+                          // More icons button
+                          Align(
+                            alignment: Alignment.center,
+                            child: TextButton(
+                              onPressed: _openEmojiPicker,
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.accentColor.withOpacity(0.1),
+                                backgroundColor: Colors.grey[800],
+                                padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                                ),
+                              ),
+                              child: Text(
+                                "More Icons",
+                                style: TextStyle(
+                                  color: AppTheme.secondaryTextColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    Divider(color: AppTheme.dividerColor, thickness: 2),
+                    const SizedBox(height: 8),
+
+
+
+                    // Duration section
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Duration",
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Duration picker button
+                          Align(
+                            alignment: Alignment.center,
+                            child: InkWell(
+                              onTap: _openDurationPicker,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[800],
+                                  borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
+                                  border: Border.all(color: AppTheme.secondaryTextColor),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.timer, size: AppTheme.iconSize, color: AppTheme.secondaryTextColor),
+                                    SizedBox(width: AppTheme.smallPadding),
+                                    Text(
+                                      formattedDuration(),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppTheme.secondaryTextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
             ],

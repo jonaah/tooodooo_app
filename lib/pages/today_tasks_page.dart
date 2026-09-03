@@ -109,28 +109,51 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
 
   void refreshAppointments() => _loadAppointments();
 
-  void _markAppointmentAsCompleted(CalendarAppointment appointment) {
-    setState(() {
-      final index = _appointments.indexWhere((a) => _sameAppointment(a, appointment));
-      if (index != -1) _appointments[index] = _appointments[index].copyWith(isCompleted: true);
-    });
-    _saveAppointmentsAndNotify();
-    _showSnack(TodayTasksService.msgTaskCompleted);
+  Future<void> _markAppointmentAsCompleted(CalendarAppointment appointment) async {
+    final index = _appointments.indexWhere((a) => _sameAppointment(a, appointment));
+    if (index != -1) {
+      final newAppt = _appointments[index].copyWith(isCompleted: true);
+      final updatedList = await _tasksService.updateAppointment(_appointments, _appointments[index], newAppt);
+      if (!mounted) return;
+      setState(() {
+        _appointments = updatedList;
+      });
+      if (widget.onTaskRemoved != null) {
+        widget.onTaskRemoved!('refresh');
+      }
+      _showSnack(TodayTasksService.msgTaskCompleted);
+    }
   }
 
-  void _markAppointmentAsIncomplete(CalendarAppointment appointment) {
-    setState(() {
-      final index = _appointments.indexWhere((a) => _sameAppointment(a, appointment));
-      if (index != -1) _appointments[index] = _appointments[index].copyWith(isCompleted: false);
-    });
-    _saveAppointmentsAndNotify();
-    _showSnack(TodayTasksService.msgTaskIncomplete);
+  Future<void> _markAppointmentAsIncomplete(CalendarAppointment appointment) async {
+    final index = _appointments.indexWhere((a) => _sameAppointment(a, appointment));
+    if (index != -1) {
+      final newAppt = _appointments[index].copyWith(isCompleted: false);
+      final updatedList = await _tasksService.updateAppointment(_appointments, _appointments[index], newAppt);
+      if (!mounted) return;
+      setState(() {
+        _appointments = updatedList;
+      });
+      if (widget.onTaskRemoved != null) {
+        widget.onTaskRemoved!('refresh');
+      }
+      _showSnack(TodayTasksService.msgTaskIncomplete);
+    }
   }
 
-  void _removeAppointment(CalendarAppointment appointment) {
-    setState(() => _appointments.removeWhere((a) => _sameAppointment(a, appointment)));
-    _saveAppointmentsAndNotify();
-    _showSnack(TodayTasksService.msgTaskRemoved);
+  Future<void> _removeAppointment(CalendarAppointment appointment) async {
+    final index = _appointments.indexWhere((a) => _sameAppointment(a, appointment));
+    if (index != -1) {
+      final updatedList = await _tasksService.removeAppointment(_appointments, _appointments[index]);
+      if (!mounted) return;
+      setState(() {
+        _appointments = updatedList;
+      });
+      if (widget.onTaskRemoved != null) {
+        widget.onTaskRemoved!('refresh');
+      }
+      _showSnack(TodayTasksService.msgTaskRemoved);
+    }
   }
 
   bool _sameAppointment(CalendarAppointment a, CalendarAppointment b) => a.id == b.id;
@@ -496,7 +519,7 @@ class BottomDayStrip extends StatelessWidget {
               child: InkWell(
                 onTap: () => onSelect(date),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 5.0),
                   decoration: BoxDecoration(
                     border: isSelected ? const Border(top: BorderSide(color: AppTheme.accentColor, width: 3)) : null,
                   ),
