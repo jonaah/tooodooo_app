@@ -5,7 +5,7 @@ import 'package:tooodooo_app/util/app_icons.dart';
 
 class IconManager {
   static const String _recentIconsKey = 'recentIconNames'; // Changed from recentIcons
-  static const int _maxRecentIcons = 10;
+  static const int _maxRecentIcons = 12;
   
   // Use AppIcons for all icon lists
   static final List<IconData> allIcons = AppIcons.allIcons;

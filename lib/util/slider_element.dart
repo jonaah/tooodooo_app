@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tooodooo_app/util/app_theme.dart';
 
 class SliderElement extends StatefulWidget {
   const SliderElement({super.key});
@@ -46,7 +47,7 @@ class SliderElementState extends State<SliderElement> {
       max: 5,
       divisions: 4,
       activeColor: taskPriorityColor(_sliderValue),
-      inactiveColor: Colors.grey[600],
+      inactiveColor: AppTheme.backgroundColor,
       label: _sliderValue.round().toString(),
       onChanged: (double value) {
         setState(() {

@@ -62,6 +62,6 @@ class AppIcons {
   // Get all icons
   static List<IconData> get allIcons => List.unmodifiable(iconMap.values);
   
-  // Get default icons (first 10)
-  static List<IconData> get defaultIcons => allIcons.take(10).toList();
+  // Get default icons (first 12)
+  static List<IconData> get defaultIcons => allIcons.take(12).toList();
 }

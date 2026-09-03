@@ -57,24 +57,34 @@ class DialogBoxState extends State<DialogBox> {
   Color? get selectedColorValue => _selectedColor; // legacy public getter
   double? _dialogHeight;
 
-  // Preset palette
-  static const List<Color> _presetColors = [
-    Color(0xFFE57373), // Soft Red
-    Color(0xFFEF5350), // Medium Red
-    Color(0xFFF06292), // Soft Pink
-    Color(0xFFBA68C8), // Soft Purple
-    Color(0xFF9575CD), // Soft Deep Purple
-    Color(0xFF7986CB), // Soft Indigo
-    Color(0xFF64B5F6), // Soft Blue
-    Color(0xFF4FC3F7), // Soft Light Blue
-    Color(0xFF4DB6AC), // Soft Teal
-    Color(0xFF81C784), // Soft Green
-    Color(0xFFDCE775), // Soft Lime
-    Color(0xFFFFF176), // Soft Yellow
-    Color(0xFFFFD54F), // Soft Amber
-    Color(0xFFFFB74D), // Soft Orange
-    Color(0xFFA1887F), // Soft Brown
+  static const List<Map<String, dynamic>> _presetColorOptions = [
+    {'color': null, 'name': 'Keine Farbe'},
+    {'color': Color(0xFFE57373), 'name': 'Zartrot'},
+    {'color': Color(0xFFEF5350), 'name': 'Koralle'},
+    {'color': Color(0xFFF06292), 'name': 'Rosa'},
+    {'color': Color(0xFFBA68C8), 'name': 'Lavendel'},
+    {'color': Color(0xFF9575CD), 'name': 'Flieder'},
+    {'color': Color(0xFF7986CB), 'name': 'Indigo'},
+    {'color': Color(0xFF64B5F6), 'name': 'Himmelblau'},
+    {'color': Color(0xFF4FC3F7), 'name': 'Pastellblau'},
+    {'color': Color(0xFF4DB6AC), 'name': 'Türkis'},
+    {'color': Color(0xFF81C784), 'name': 'Salbeigrün'},
+    {'color': Color(0xFFDCE775), 'name': 'Limette'},
+    {'color': Color(0xFFFFF176), 'name': 'Sonnengelb'},
+    {'color': Color(0xFFFFD54F), 'name': 'Bernstein'},
+    {'color': Color(0xFFFFB74D), 'name': 'Pastellorange'},
+    {'color': Color(0xFFA1887F), 'name': 'Kupferbraun'},
   ];
+
+  String _getColorName(Color? color) {
+    if (color == null) return 'Keine Farbe';
+    for (final item in _presetColorOptions) {
+      if (item['color'] != null && (item['color'] as Color).value == color.value) {
+        return item['name'] as String;
+      }
+    }
+    return 'Farbe';
+  }
 
   bool get isGroup => _isGroup;
   List<Map<String, dynamic>> getSubtasks() => _subtasks
@@ -111,15 +121,121 @@ class DialogBoxState extends State<DialogBox> {
   }
 
   void _openEmojiPicker() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EmojiPickerPage(
-          recentlyUsed: IconManager.recentIcons,
-          allEmojis: IconManager.allIcons,
-          onIconSelected: _handleIconTap,
-        ),
-      ),
+    await showIconPicker(
+      context: context,
+      onIconSelected: _handleIconTap,
+    );
+  }
+
+  void _openColorPicker() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        final double screenHeight = MediaQuery.of(dialogContext).size.height;
+        return Dialog(
+          backgroundColor: AppTheme.backgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          clipBehavior: Clip.antiAlias,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 380,
+              maxHeight: screenHeight * 0.68,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Modern Drag Handle
+
+                // Vertical List of Colors with names
+                Flexible(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                    itemCount: _presetColorOptions.length,
+                    itemBuilder: (context, index) {
+                      final item = _presetColorOptions[index];
+                      final Color? color = item['color'] as Color?;
+                      final String name = item['name'] as String;
+                      final bool isSelected = (_selectedColor == null && color == null) ||
+                          (_selectedColor != null && color != null && _selectedColor!.value == color.value);
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 0),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedColor = color;
+                              });
+                              Navigator.pop(dialogContext);
+                            },
+                            borderRadius: BorderRadius.circular(0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                                    : AppTheme.backgroundColor,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: color ?? Colors.transparent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: color != null
+                                            ? Colors.white.withValues(alpha: 0.4)
+                                            : AppTheme.secondaryTextColor.withValues(alpha: 0.6),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: color != null
+                                          ? [
+                                              BoxShadow(
+                                                color: color.withValues(alpha: 0.35),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: color == null
+                                        ? Icon(Icons.block, size: 16, color: AppTheme.secondaryTextColor)
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                        color: isSelected ? color : AppTheme.secondaryTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(Icons.check_circle, size: 20, color: color),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -171,9 +287,9 @@ class DialogBoxState extends State<DialogBox> {
   @override
   Widget build(BuildContext context) {
     final List<IconData> displayIcons = IconManager.recentIcons;
-    final int firstRowCount = displayIcons.length >= 5 ? 5 : displayIcons.length;
-    final bool hasSecondRow = displayIcons.length > 5;
-    final int secondRowCount = hasSecondRow ? displayIcons.length - 5 : 0;
+    final int firstRowCount = displayIcons.length >= 6 ? 6 : displayIcons.length;
+    final bool hasSecondRow = displayIcons.length > 6;
+    final int secondRowCount = hasSecondRow ? (displayIcons.length - 6).clamp(0, 6) : 0;
 
     final double screenHeight = MediaQuery.of(context).size.height;
     final double minHeight = screenHeight * 0.45;
@@ -470,59 +586,33 @@ class DialogBoxState extends State<DialogBox> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Task Color",
-                                style: TextStyle(
-                                  color: AppTheme.secondaryTextColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                          Text(
+                            "Task Color",
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: InkWell(
+                              onTap: _openColorPicker,
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadius *2),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: AppTheme.smallPadding, vertical: AppTheme.smallPadding),
+                                decoration: BoxDecoration(
+                                  color: _selectedColor != null ? selectedColor : AppTheme.backgroundColor,
+                                  borderRadius: BorderRadius.circular(AppTheme.borderRadius *2),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(width: 25, height: 25,),
+                                  ],
                                 ),
                               ),
-                              if (selectedColor != null) ...[
-                                const SizedBox(width: 16),
-                                TextButton(
-                                  onPressed: () { setState(() { _selectedColor = null; }); },
-                                  child: const Text('Clear', style: TextStyle(fontSize: 12)),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                ..._presetColors.map((c) {
-                                  final bool isSel = _selectedColor?.value == c.value;
-                                  return GestureDetector(
-                                    onTap: () { setState(() { _selectedColor = c; }); },
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: c,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isSel ? Colors.white : Colors.black54,
-                                          width: isSel ? 3 : 1.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.25),
-                                            blurRadius: 3,
-                                            offset: const Offset(0, 2),
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ],
                             ),
                           ),
                         ],
@@ -585,7 +675,7 @@ class DialogBoxState extends State<DialogBox> {
                                 child: Container(
                                   padding: EdgeInsets.all(AppTheme.smallPadding),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : Colors.grey[800],
+                                    color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : Colors.white,
                                     borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                                     boxShadow: [
                                       BoxShadow(
@@ -597,7 +687,7 @@ class DialogBoxState extends State<DialogBox> {
                                   ),
                                   child: Icon(
                                     icon,
-                                    color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
+                                    color: isSelected ? Colors.white : AppTheme.accentColor,
                                     size: AppTheme.iconSize,
                                   ),
                                 ),
@@ -606,17 +696,17 @@ class DialogBoxState extends State<DialogBox> {
                           ),
                           // Second row of icons (if needed)
                           if (hasSecondRow) ...[
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: displayIcons.sublist(5, 5 + secondRowCount).map((icon) {
+                              children: displayIcons.sublist(6, 6 + secondRowCount).map((icon) {
                                 final isSelected = _selectedIcon == icon;
                                 return GestureDetector(
                                   onTap: () => _handleIconTap(icon),
                                   child: Container(
                                     padding: EdgeInsets.all(AppTheme.smallPadding),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? AppTheme.accentColor : Colors.grey[800],
+                                      color: isSelected ? AppTheme.accentColor : Colors.white,
                                       borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                                       boxShadow: [
                                         BoxShadow(
@@ -628,7 +718,7 @@ class DialogBoxState extends State<DialogBox> {
                                     ),
                                     child: Icon(
                                       icon,
-                                      color: isSelected ? Colors.white : AppTheme.accentColor.withOpacity(0.8),
+                                      color: isSelected ? Colors.white : AppTheme.accentColor,
                                       size: AppTheme.iconSize,
                                     ),
                                   ),
@@ -644,7 +734,7 @@ class DialogBoxState extends State<DialogBox> {
                               onPressed: _openEmojiPicker,
                               style: TextButton.styleFrom(
                                 foregroundColor: AppTheme.accentColor.withOpacity(0.1),
-                                backgroundColor: Colors.grey[800],
+                                backgroundColor: AppTheme.accentColor,
                                 padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),

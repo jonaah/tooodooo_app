@@ -83,15 +83,9 @@ class _CalendarEditDialogState extends State<CalendarEditDialog> {
   }
 
   void _openEmojiPicker() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EmojiPickerPage(
-          recentlyUsed: IconManager.recentIcons,
-          allEmojis: IconManager.allIcons,
-          onIconSelected: _handleIconTap,
-        ),
-      ),
+    await showIconPicker(
+      context: context,
+      onIconSelected: _handleIconTap,
     );
   }
 
