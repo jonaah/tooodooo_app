@@ -675,7 +675,7 @@ class DialogBoxState extends State<DialogBox> {
                                 child: Container(
                                   padding: EdgeInsets.all(AppTheme.smallPadding),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : Colors.white,
+                                    color: isSelected ? AppTheme.accentColor.withOpacity(0.9) : AppTheme.backgroundColor,
                                     borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                                     boxShadow: [
                                       BoxShadow(
@@ -687,7 +687,7 @@ class DialogBoxState extends State<DialogBox> {
                                   ),
                                   child: Icon(
                                     icon,
-                                    color: isSelected ? Colors.white : AppTheme.accentColor,
+                                    color: Colors.white,
                                     size: AppTheme.iconSize,
                                   ),
                                 ),
@@ -706,7 +706,7 @@ class DialogBoxState extends State<DialogBox> {
                                   child: Container(
                                     padding: EdgeInsets.all(AppTheme.smallPadding),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? AppTheme.accentColor : Colors.white,
+                                      color: isSelected ? AppTheme.accentColor : AppTheme.backgroundColor,
                                       borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                                       boxShadow: [
                                         BoxShadow(
@@ -718,7 +718,7 @@ class DialogBoxState extends State<DialogBox> {
                                     ),
                                     child: Icon(
                                       icon,
-                                      color: isSelected ? Colors.white : AppTheme.accentColor,
+                                      color: Colors.white,
                                       size: AppTheme.iconSize,
                                     ),
                                   ),
@@ -781,7 +781,7 @@ class DialogBoxState extends State<DialogBox> {
                               child: Container(
                                 padding: EdgeInsets.symmetric(horizontal: AppTheme.defaultPadding, vertical: AppTheme.smallPadding),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[800],
+                                  color: AppTheme.backgroundColor,
                                   borderRadius: BorderRadius.circular(AppTheme.borderRadius / 2),
                                   border: Border.all(color: AppTheme.secondaryTextColor),
                                 ),
