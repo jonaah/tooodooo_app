@@ -164,12 +164,110 @@ class AppTheme {
         color: dividerColor,
         thickness: 2,
       ),
+      timePickerTheme: timePickerTheme,
       colorScheme: ColorScheme.dark(
         primary: accentColor,
         surface: Colors.grey[800]!,
         onSurface: textColor,
         secondary: accentColor,
       ),
+    );
+  }
+
+  // TimePickerThemeData 
+  static TimePickerThemeData get timePickerTheme {
+    return TimePickerThemeData(
+      backgroundColor: primaryColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      hourMinuteShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      hourMinuteColor: WidgetStateColor.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return accentColor.withValues(alpha: 0.3);
+        }
+        return backgroundColor.withValues(alpha: 0.25);
+      }),
+      hourMinuteTextColor: WidgetStateColor.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return Colors.white;
+        }
+        return secondaryTextColor;
+      }),
+      dialBackgroundColor: backgroundColor.withValues(alpha: 0.25),
+      dialHandColor: accentColor,
+      dialTextColor: WidgetStateColor.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return Colors.white;
+        }
+        return secondaryTextColor;
+      }),
+      dialTextStyle: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        height: 1.0,
+      ),
+      dayPeriodColor: WidgetStateColor.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return accentColor;
+        }
+        return backgroundColor.withValues(alpha: 0.25);
+      }),
+      dayPeriodTextColor: WidgetStateColor.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return Colors.white;
+        }
+        return secondaryTextColor;
+      }),
+      entryModeIconColor: accentColor,
+      cancelButtonStyle: TextButton.styleFrom(
+        foregroundColor: secondaryTextColor.withValues(alpha: 0.8),
+      ),
+      confirmButtonStyle: ElevatedButton.styleFrom(
+        backgroundColor: accentColor,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      ),
+    );
+  }
+
+  // Helper method to open a spacious, beautifully styled TimePicker
+  static Future<TimeOfDay?> showStyledTimePicker({
+    required BuildContext context,
+    required TimeOfDay initialTime,
+  }) async {
+    return showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            primaryColor: accentColor,
+            scaffoldBackgroundColor: primaryColor,
+            colorScheme: const ColorScheme.dark(
+              primary: accentColor,
+              onPrimary: Colors.white,
+              surface: primaryColor,
+              onSurface: secondaryTextColor,
+            ),
+            timePickerTheme: timePickerTheme,
+          ),
+          child: MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.0),
+            ),
+            child: Transform.scale(
+              scale: 1.06,
+              child: child!,
+            ),
+          ),
+        );
+      },
     );
   }
 }

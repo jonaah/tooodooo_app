@@ -307,16 +307,16 @@ class CalendarPageState extends State<CalendarPage>
           (context) => TodoSelectionDialog(
             tasks: widget.tasks ?? [],
             selectedDateTime: selectedDateTime,
-            onTaskSelected: (task) {
-              _addTaskToCalendar(task, selectedDateTime);
+            onTaskSelected: (task, targetDateTime) {
+              _addTaskToCalendar(task, targetDateTime);
             },
-            onNewTaskCreated: (taskName, priority, icon, duration) {
+            onNewTaskCreated: (taskName, priority, icon, duration, targetDateTime) {
               _createAndAddNewTask(
                 taskName,
                 priority,
                 icon,
                 duration,
-                selectedDateTime,
+                targetDateTime,
               );
             },
           ),
@@ -544,7 +544,7 @@ class CalendarPageState extends State<CalendarPage>
           width: constraints.maxWidth,
           height: constraints.maxHeight,
           child: Material(
-            color: Colors.transparent,
+            color: AppTheme.backgroundColor,
             clipBehavior: Clip.hardEdge,
             child: Theme(
               data: Theme.of(context).copyWith(
@@ -583,11 +583,12 @@ class CalendarPageState extends State<CalendarPage>
                       minutes: _zoomController.currentMinutesInterval,
                     ),
                     timeIntervalHeight:
-                        _zoomController.timeIntervalHeight * 0.6,
+                        _zoomController.timeIntervalHeight * 0.8
+                    ,
                     startHour: _startHour.toDouble(),
                     endHour: _endHour.toDouble(),
                     timeTextStyle: TextStyle(
-                      color: AppTheme.darkTextColor,
+                      color: AppTheme.textColor,
                       fontSize: 12,
                     ),
                   ),
@@ -601,19 +602,19 @@ class CalendarPageState extends State<CalendarPage>
                   ),
                   viewHeaderStyle: const ViewHeaderStyle(
                     dayTextStyle: TextStyle(
-                      color: AppTheme.darkTextColor,
+                      color: AppTheme.textColor,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                     dateTextStyle: TextStyle(
-                      color: AppTheme.darkTextColor,
+                      color: AppTheme.textColor,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  cellBorderColor: Colors.black.withOpacity(0.1),
-                  backgroundColor: Colors.white,
-                  todayHighlightColor: AppTheme.accentColor,
+                  cellBorderColor: Colors.white.withOpacity(0.3),
+                  backgroundColor: AppTheme.backgroundColor,
+                  todayHighlightColor: AppTheme.dividerColor,
                   selectionDecoration: BoxDecoration(
                     border: Border.all(color: AppTheme.dividerColor, width: 1),
                     borderRadius: BorderRadius.circular(
@@ -627,8 +628,8 @@ class CalendarPageState extends State<CalendarPage>
                     final prio = (appointment.priority ?? 3).clamp(1, 5);
                     
                     final bgColor = appointment.customColorValue != null
-                        ? Color(appointment.customColorValue!).withOpacity(0.25)
-                        : Colors.grey[800]!.withOpacity(0.25);
+                        ? Color(appointment.customColorValue!).withOpacity(0.95)
+                        : Colors.grey[800]!.withOpacity(0.95);
                         
                     final icon =
                         appointment.notes != null
@@ -644,15 +645,15 @@ class CalendarPageState extends State<CalendarPage>
                         color: bgColor,
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                          color: Colors.white12.withOpacity(appointment.isCompleted ? 0.3 : 0.7),
-                          width: 1.2,
+                          color: Colors.white12.withOpacity(appointment.isCompleted ? 1: 1),
+                          width: 0,
                         ),
                         boxShadow: [
                           if (!appointment.isCompleted)
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.7),
+                              color: Colors.white.withOpacity(0.1),
                               blurRadius: 2,
-                              offset: const Offset(0, 2),
+                              offset: const Offset(0, 0),
                             ),
                         ]
                       ),
