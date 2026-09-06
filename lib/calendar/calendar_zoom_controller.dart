@@ -12,7 +12,7 @@ class CalendarZoomController {
   static const double maxTimeIntervalHeight = 80;
   
   /// Aktuelles Zeitintervall in Minuten (30 oder 60)
-  int _currentMinutesInterval = 15;
+  int _currentMinutesInterval = 30;
   
   /// Getter für aktuelle Zeitintervallhöhe
   double get timeIntervalHeight => _timeIntervalHeight;
