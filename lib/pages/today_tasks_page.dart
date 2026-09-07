@@ -274,11 +274,6 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
           ),
         ],
       ),
-      bottomNavigationBar: BottomDayStrip(
-        today: _today,
-        selectedDate: _selectedDate,
-        onSelect: (d) => setState(() => _selectedDate = d),
-      ),
     );
   }
 
@@ -404,13 +399,12 @@ class TaskSectionsList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppTheme.defaultPadding),
       children: [
-        if (isToday) CurrentTimeBanner(currentTime: currentTime),
         if (isToday && currentTasks.isNotEmpty) const SizedBox(height: 24),
         if (currentTasks.isNotEmpty) ...[
           TaskSectionHeader(
             title: TodayTasksService.sectionHappeningNow,
             icon: Icons.play_circle_filled,
-            color: Colors.green,
+            color: Color(0xFF07810C),
           ),
           ...currentTasks.map((task) => TaskCard(
                 appointment: task,
@@ -440,7 +434,7 @@ class TaskSectionsList extends StatelessWidget {
           TaskSectionHeader(
             title: isToday ? TodayTasksService.sectionUpcoming : TodayTasksService.sectionScheduled,
             icon: isToday ? Icons.upcoming : Icons.event,
-            color: AppTheme.darkTextColor,
+            color: Color(0xFFC76808),
           ),
           ...upcomingTasks.map((task) => TaskCard(
                 appointment: task,
@@ -456,7 +450,7 @@ class TaskSectionsList extends StatelessWidget {
           TaskSectionHeader(
             title: TodayTasksService.sectionCompleted,
             icon: Icons.check_circle,
-            color: Colors.grey,
+            color: Color(0xFF2F2F36),
           ),
           ...completedTasks.map((task) => TaskCard(
                 appointment: task,
@@ -472,84 +466,4 @@ class TaskSectionsList extends StatelessWidget {
   }
 }
 
-class CurrentTimeBanner extends StatelessWidget {
-  final DateTime currentTime;
-  const CurrentTimeBanner({super.key, required this.currentTime});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: AppTheme.defaultPadding),
-      decoration: BoxDecoration(
-        color: AppTheme.dividerColor.withOpacity(0.4),
-        borderRadius: BorderRadius.circular(AppTheme.borderRadius),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.access_time_rounded, color: AppTheme.accentColor),
-          const SizedBox(width: 8),
-          Text(
-            'Current Time: ${DateFormat('h:mm a').format(currentTime)}',
-            style: const TextStyle(color: AppTheme.secondaryTextColor, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-class BottomDayStrip extends StatelessWidget {
-  final DateTime today;
-  final DateTime selectedDate;
-  final ValueChanged<DateTime> onSelect;
-  const BottomDayStrip({super.key, required this.today, required this.selectedDate, required this.onSelect});
-  @override
-  Widget build(BuildContext context) {
-    return BottomAppBar(
-      color: AppTheme.primaryColor,
-      elevation: 8,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(5, (index) {
-            final dayOffset = index - 2;
-            final date = today.add(Duration(days: dayOffset));
-            final isSelected = _isSameDay(date, selectedDate);
-            return Expanded(
-              child: InkWell(
-                onTap: () => onSelect(date),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 5.0),
-                  decoration: BoxDecoration(
-                    border: isSelected ? const Border(top: BorderSide(color: AppTheme.accentColor, width: 3)) : null,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        DateFormat('E').format(date),
-                        style: TextStyle(
-                          color: isSelected ? AppTheme.accentColor : AppTheme.textColor,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      Text(
-                        DateFormat('d').format(date),
-                        style: TextStyle(
-                          color: isSelected ? AppTheme.accentColor : AppTheme.textColor,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
-}

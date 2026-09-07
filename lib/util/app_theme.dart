@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   // App colors
   static const Color primaryColor = Color(0xFF0D1B2A); // Dark gray for app bar
-  static const Color backgroundColor = Color(0xFF778DA9); // Background color
+  static const Color backgroundColor = Color(0xFF879FB7); // Background color
   static const Color textColor = Color(0xFFE0E1DD); // Light text color
   static const Color secondaryTextColor = Color(0xFFFFF7F7); // Lighter text color for subtitles
   static const Color darkTextColor = Color(0xFF1B263B); // Darker text color for contrast
