@@ -136,7 +136,7 @@ class _MainNavigatorState extends State<MainNavigator> {
     return Container(
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.95),
         borderRadius: BorderRadius.circular(32),
         boxShadow: const [
           BoxShadow(
@@ -201,10 +201,12 @@ class _MainNavigatorState extends State<MainNavigator> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              width: 84,
+              height: 58,
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFFF1F5F9) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
+                color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.transparent,
+                borderRadius: BorderRadius.circular(32),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -252,7 +254,7 @@ class _MainNavigatorState extends State<MainNavigator> {
       width: 64,
       height: 64,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withOpacity(0.95),
         shape: BoxShape.circle,
         boxShadow: const [
           BoxShadow(

@@ -76,15 +76,6 @@ class DialogBoxState extends State<DialogBox> {
     {'color': Color(0xFFA1887F), 'name': 'Kupferbraun'},
   ];
 
-  String _getColorName(Color? color) {
-    if (color == null) return 'Keine Farbe';
-    for (final item in _presetColorOptions) {
-      if (item['color'] != null && (item['color'] as Color).value == color.value) {
-        return item['name'] as String;
-      }
-    }
-    return 'Farbe';
-  }
 
   bool get isGroup => _isGroup;
   List<Map<String, dynamic>> getSubtasks() => _subtasks

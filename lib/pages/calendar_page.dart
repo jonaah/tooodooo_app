@@ -11,8 +11,6 @@ import 'package:tooodooo_app/pages/home_page.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
 import 'package:tooodooo_app/util/app_icons.dart';
 import 'package:tooodooo_app/util/todo_selection_dialog.dart';
-import 'package:googleapis/calendar/v3.dart' as google_calendar;
-
 import '../calendar/google_calendar_client.dart';
 
 class CalendarPage extends StatefulWidget {
@@ -80,7 +78,7 @@ class CalendarPageState extends State<CalendarPage>
     final now = DateTime.now();
     // Berechne die Mitte des sichtbaren Intervalls
     final interval = (_endHour - _startHour).toDouble();
-    final middleHour = _startHour + interval / 2;
+    final _ = _startHour + interval / 2;
     final displayDate = DateTime(
       now.year,
       now.month,

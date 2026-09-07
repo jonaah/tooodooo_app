@@ -7,7 +7,6 @@ import 'package:tooodooo_app/today/task_card.dart';
 import 'package:tooodooo_app/today/task_section_header.dart';
 import 'package:tooodooo_app/today/today_tasks_service.dart';
 import 'package:tooodooo_app/util/app_theme.dart';
-import 'package:tooodooo_app/util/todo_tile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -107,12 +106,6 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
     setState(() => _appointments = loadedAppointments);
   }
 
-  Future<void> _saveAppointmentsAndNotify() async {
-    await _tasksService.saveAppointments(_appointments);
-    if (widget.onTaskRemoved != null) {
-      widget.onTaskRemoved!('refresh');
-    }
-  }
 
   void refreshAppointments() => _loadAppointments();
 
@@ -184,34 +177,8 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
     }
   }
 
-  Future<void> _saveTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('toDoList', jsonEncode(_tasksLocal.map((t) => t.toJson()).toList()));
-    widget.onTasksUpdated?.call(_tasksLocal);
-  }
 
-  void _toggleTask(int index, bool? value) {
-    setState(() {
-      final task = _tasksLocal[index];
-      if (task.isGroup) {
-        final allComplete = task.subtasks.isNotEmpty && task.subtasks.every((s) => s.completed);
-        for (final s in task.subtasks) { s.completed = !allComplete; }
-        task.recalcCompletion();
-      } else {
-        task.completed = value ?? !task.completed;
-      }
-    });
-    _saveTasks();
-  }
 
-  void _toggleSubTask(int taskIndex, int subIndex, bool newVal) {
-    setState(() {
-      final task = _tasksLocal[taskIndex];
-      task.subtasks[subIndex].completed = newVal;
-      task.recalcCompletion();
-    });
-    _saveTasks();
-  }
 
   @override
   Widget build(BuildContext context) {
