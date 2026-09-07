@@ -82,7 +82,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
   final GlobalKey<SliderElementState> _sliderKey = GlobalKey<SliderElementState>();
   final GlobalKey<DialogBoxState> _dialogKey = GlobalKey<DialogBoxState>();
@@ -93,17 +93,65 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int durationMinutes = 0; // Store minutes part of duration
   Key listViewKey = UniqueKey(); // Key to force ListView rebuild
 
+  late final AnimationController _appBarAnimationController;
+  late final Animation<double> _appBarFadeAnimation;
+  final ScrollController _scrollController = ScrollController();
+  bool _isAppBarVisible = true;
+  double _lastScrollOffset = 0.0;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _appBarAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+      value: 1.0,
+    );
+    _appBarFadeAnimation = CurvedAnimation(
+      parent: _appBarAnimationController,
+      curve: Curves.easeInOut,
+    );
+    _scrollController.addListener(_onScroll);
     _loadToDoList();
     IconManager.loadRecentIcons(); // Initialize icon manager
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final currentOffset = _scrollController.offset;
+    final delta = currentOffset - _lastScrollOffset;
+
+    if (currentOffset <= 0) {
+      // Reached the top -> ensure AppBar is fully visible
+      if (!_isAppBarVisible) {
+        _isAppBarVisible = true;
+        _appBarAnimationController.forward();
+      }
+    } else if (delta > 3 && currentOffset > 20) {
+      // Scrolling down past threshold -> dissolve AppBar slowly
+      if (_isAppBarVisible) {
+        _isAppBarVisible = false;
+        _appBarAnimationController.reverse();
+      }
+    } else if (delta < -3) {
+      // Scrolling back up -> reveal AppBar
+      if (!_isAppBarVisible) {
+        _isAppBarVisible = true;
+        _appBarAnimationController.forward();
+      }
+    }
+
+    _lastScrollOffset = currentOffset;
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _appBarAnimationController.dispose();
     super.dispose();
   }
 
@@ -231,8 +279,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void deleteTask(int index) {
     setState(() {
       toDoList.removeAt(index);
+      if (toDoList.isEmpty && !_isAppBarVisible) {
+        _isAppBarVisible = true;
+        _appBarAnimationController.forward();
+      }
     });
     _saveToDoList();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && _scrollController.offset <= 0 && !_isAppBarVisible) {
+        _isAppBarVisible = true;
+        _appBarAnimationController.forward();
+      }
+    });
   }
 
   // Edit an existing task
@@ -350,31 +408,56 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final appBarHeight = kToolbarHeight + topPadding;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        title: const Text(
-            'TO DO',
-            style: AppTheme.appBarTitle
-        ),
-        centerTitle: true,
-        backgroundColor: AppTheme.primaryColor,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: AppTheme.textColor),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsPage(
-                  onSettingsSaved: () {
-                    widget.onSettingsChanged?.call();
-                  },
-                )),
-              );
-            },
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AnimatedBuilder(
+          animation: _appBarFadeAnimation,
+          builder: (context, child) {
+            final opacity = _appBarFadeAnimation.value;
+            return Opacity(
+              opacity: opacity,
+              child: IgnorePointer(
+                ignoring: opacity < 0.1,
+                child: child,
+              ),
+            );
+          },
+          child: AppBar(
+            title: const Padding(
+              padding: EdgeInsets.only(left: AppTheme.defaultPadding), // Kleiner zusätzlicher Abstand
+              child: Text(
+                'TO DO',
+                style: AppTheme.appBarTitle,
+              ),
+            ),
+            centerTitle: false,
+            backgroundColor: AppTheme.backgroundColor.withOpacity(0.2),
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsPage(
+                      onSettingsSaved: () {
+                        widget.onSettingsChanged?.call();
+                      },
+                    )),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-        surfaceTintColor: AppTheme.primaryColor,
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'home_fab',
@@ -385,71 +468,73 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           color: AppTheme.textColor,
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: toDoList.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_box_outline_blank,
-                          color: AppTheme.textColor.withOpacity(0.5),
-                          size: 64,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No tasks yet',
-                          style: TextStyle(
-                            color: AppTheme.textColor.withOpacity(0.7),
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Tap + to add a new task',
-                          style: TextStyle(
-                            color: AppTheme.textColor.withOpacity(0.5),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+      body: toDoList.isEmpty
+          ? Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: appBarHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.check_box_outline_blank,
+                      color: AppTheme.textColor.withOpacity(0.5),
+                      size: 64,
                     ),
-                  )
-                : ListView.builder(
-                    key: listViewKey, // Use dynamic key to force rebuild
-                    itemCount: toDoList.length,
-                    itemBuilder: (context, index) {
-                      return ToDoTile(
-                        taskName: toDoList[index].name,
-                        taskCompleted: toDoList[index].completed,
-                        taskPriority: toDoList[index].priority,
-                        taskIcon: toDoList[index].getIcon(),
-                        taskDuration: toDoList[index].duration,
-                        customColor: toDoList[index].colorValue != null ? Color(toDoList[index].colorValue!) : null,
-                        onChanged: (value) => checkBoxChanged(value, index),
-                        deleteFunction: (context) => deleteTask(index),
-                        editFunction: (context) => editTask(index),
-                        subtasks: toDoList[index].isGroup
-                            ? toDoList[index]
-                                .subtasks
-                                .map((s) => {'name': s.name, 'completed': s.completed})
-                                .toList()
-                            : null,
-                        onSubtaskChanged: (subIndex, newVal) {
-                          setState(() {
-                            toDoList[index].subtasks[subIndex].completed = newVal;
-                            toDoList[index].recalcCompletion();
-                          });
-                          _saveToDoList();
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No tasks yet',
+                      style: TextStyle(
+                        color: AppTheme.textColor.withOpacity(0.7),
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap + to add a new task',
+                      style: TextStyle(
+                        color: AppTheme.textColor.withOpacity(0.5),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : ListView.builder(
+              key: listViewKey, // Use dynamic key to force rebuild
+              controller: _scrollController,
+              padding: EdgeInsets.only(
+                top: appBarHeight,
+                bottom: 80,
+              ),
+              itemCount: toDoList.length,
+              itemBuilder: (context, index) {
+                return ToDoTile(
+                  taskName: toDoList[index].name,
+                  taskCompleted: toDoList[index].completed,
+                  taskPriority: toDoList[index].priority,
+                  taskIcon: toDoList[index].getIcon(),
+                  taskDuration: toDoList[index].duration,
+                  customColor: toDoList[index].colorValue != null ? Color(toDoList[index].colorValue!) : null,
+                  onChanged: (value) => checkBoxChanged(value, index),
+                  deleteFunction: (context) => deleteTask(index),
+                  editFunction: (context) => editTask(index),
+                  subtasks: toDoList[index].isGroup
+                      ? toDoList[index]
+                          .subtasks
+                          .map((s) => {'name': s.name, 'completed': s.completed})
+                          .toList()
+                      : null,
+                  onSubtaskChanged: (subIndex, newVal) {
+                    setState(() {
+                      toDoList[index].subtasks[subIndex].completed = newVal;
+                      toDoList[index].recalcCompletion();
+                    });
+                    _saveToDoList();
+                  },
+                );
+              },
+            ),
     );
   }
 }

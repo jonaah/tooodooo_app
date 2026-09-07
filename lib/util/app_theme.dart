@@ -56,7 +56,7 @@ class AppTheme {
 
   // Text styles
   static const TextStyle appBarTitle = TextStyle(
-    color: textColor,
+    color: Colors.white,
     fontSize: 28,
     fontWeight: FontWeight.bold,
   );
