@@ -79,10 +79,10 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key, this.onTasksUpdated, this.onSettingsChanged});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomePage> createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+class HomePageState extends State<HomePage> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
   final GlobalKey<SliderElementState> _sliderKey = GlobalKey<SliderElementState>();
   final GlobalKey<DialogBoxState> _dialogKey = GlobalKey<DialogBoxState>();
@@ -459,15 +459,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Single
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'home_fab',
-        onPressed: createNewTask,
-        backgroundColor: AppTheme.primaryColor,
-        child: Icon(
-          Icons.add,
-          color: AppTheme.textColor,
-        ),
-      ),
       body: toDoList.isEmpty
           ? Center(
               child: Padding(
@@ -505,7 +496,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver, Single
               controller: _scrollController,
               padding: EdgeInsets.only(
                 top: appBarHeight,
-                bottom: 80,
+                bottom: 96,
               ),
               itemCount: toDoList.length,
               itemBuilder: (context, index) {

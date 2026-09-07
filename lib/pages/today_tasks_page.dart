@@ -15,12 +15,14 @@ class TodayTasksPage extends StatefulWidget {
   final List<Task>? tasks;
   final Function(String)? onTaskRemoved;
   final Function(List<Task>)? onTasksUpdated; // new callback for task state changes
+  final VoidCallback? onGoToCalendar;
 
   const TodayTasksPage({
     super.key,
     this.tasks,
     this.onTaskRemoved,
     this.onTasksUpdated,
+    this.onGoToCalendar,
   });
 
   @override
@@ -61,7 +63,12 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
   // Navigation helpers
   void _goToPreviousDay() => setState(() => _selectedDate = _selectedDate.subtract(const Duration(days: 1)));
   void _goToNextDay() => setState(() => _selectedDate = _selectedDate.add(const Duration(days: 1)));
-  void _goToToday() => setState(() => _selectedDate = _today);
+  void goToToday() {
+    setState(() {
+      _today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+      _selectedDate = _today;
+    });
+  }
 
   void _showMonthCalendarPicker() {
     showDialog(
@@ -240,7 +247,6 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
         surfaceTintColor: AppTheme.primaryColor,
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.today), onPressed: _goToToday, tooltip: 'Go to today'),
           IconButton(icon: const Icon(Icons.calendar_month), onPressed: _showMonthCalendarPicker, tooltip: 'Select date'),
         ],
       ),
@@ -303,9 +309,13 @@ class TodayTasksPageState extends State<TodayTasksPage> with WidgetsBindingObser
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => CalendarPage(tasks: widget.tasks)),
-              );
+              if (widget.onGoToCalendar != null) {
+                widget.onGoToCalendar!();
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => CalendarPage(tasks: widget.tasks)),
+                );
+              }
             },
             icon: const Icon(Icons.calendar_month, color: Colors.white),
             label: const Text('Go to Calendar'),
@@ -397,7 +407,12 @@ class TaskSectionsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(AppTheme.defaultPadding),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.defaultPadding,
+        AppTheme.defaultPadding,
+        AppTheme.defaultPadding,
+        96,
+      ),
       children: [
         if (isToday && currentTasks.isNotEmpty) const SizedBox(height: 24),
         if (currentTasks.isNotEmpty) ...[

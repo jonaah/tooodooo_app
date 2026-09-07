@@ -299,6 +299,11 @@ class CalendarPageState extends State<CalendarPage>
     }
   }
 
+  /// Öffentliche Methode zum Hinzufügen einer Aufgabe über den Floating Action Button
+  void showAddTaskDialog() {
+    _showTaskSelectionDialog(_selectedDate);
+  }
+
   /// Zeigt die Aufgabenauswahl an, wenn ein Zeitslot doppelt angetippt wird
   void _showTaskSelectionDialog(DateTime selectedDateTime) {
     showDialog(
@@ -490,7 +495,7 @@ class CalendarPageState extends State<CalendarPage>
       ),
     );
     return Scaffold(
-      backgroundColor: AppTheme.calendarBackgroundColor,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('KALENDER', style: AppTheme.appBarTitle),
         centerTitle: true,
@@ -524,15 +529,6 @@ class CalendarPageState extends State<CalendarPage>
         ],
       ),
       body: _buildCalendarWithZoom(),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'calendar_fab',
-        onPressed: () {
-          _showTaskSelectionDialog(_selectedDate);
-        },
-        backgroundColor: AppTheme.primaryColor,
-        tooltip: 'Aufgabe zum Kalender hinzufügen',
-        child: const Icon(Icons.add_task, color: AppTheme.textColor),
-      ),
     );
   }
 
